@@ -1,0 +1,23 @@
+#monitor {
+    margin: 20px;
+    padding: 20px;
+    background: #1a1a1a;
+    border-radius: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #333;
+}
+
+.Buy { color: #4CAF50; }
+.Sell { color: #f44336; }
+.profit { color: #4CAF50; }
+.loss { color: #f44336; }

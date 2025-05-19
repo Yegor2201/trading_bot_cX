@@ -1,0 +1,75 @@
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503924996],server_timestamp[1747503923423],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503928356],server_timestamp[1747503927095],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503932043],server_timestamp[1747503930770],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:45:35).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503935734],server_timestamp[1747503934501],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503939384],server_timestamp[1747503937717],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503942642],server_timestamp[1747503941373],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:45:46).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503946279],server_timestamp[1747503944647],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503949676],server_timestamp[1747503948004],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503952933],server_timestamp[1747503951665],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:45:56).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503956621],server_timestamp[1747503954972],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503959895],server_timestamp[1747503958224],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503963173],server_timestamp[1747503961906],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:46:06).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503966860],server_timestamp[1747503965235],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503970136],server_timestamp[1747503968467],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503973412],server_timestamp[1747503972146],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:46:17).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503977101],server_timestamp[1747503975850],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503980785],server_timestamp[1747503979116],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503984062],server_timestamp[1747503982792],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:46:27).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503987750],server_timestamp[1747503986131],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503991025],server_timestamp[1747503989362],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503994342],server_timestamp[1747503992675],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:46:37).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747503997580],server_timestamp[1747503995982],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504000957],server_timestamp[1747503999688],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504004645],server_timestamp[1747504003378],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:46:48).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504008333],server_timestamp[1747504007143],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504012120],server_timestamp[1747504010851],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504015806],server_timestamp[1747504014539],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:46:59).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504019494],server_timestamp[1747504017864],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504022769],server_timestamp[1747504021500],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504026456],server_timestamp[1747504025186],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:47:10).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504030146],server_timestamp[1747504028498],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504033381],server_timestamp[1747504031711],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504036593],server_timestamp[1747504035322],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:47:20).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504040205],server_timestamp[1747504038570],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504043452],server_timestamp[1747504042186],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504047068],server_timestamp[1747504045803],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:47:30).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504050727],server_timestamp[1747504049209],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504054104],server_timestamp[1747504052872],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504057791],server_timestamp[1747504056528],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:47:41).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504061480],server_timestamp[1747504059852],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504064755],server_timestamp[1747504063088],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504068031],server_timestamp[1747504066765],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:47:51).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504071719],server_timestamp[1747504070485],recv_window[5000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 2 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504075404],server_timestamp[1747504073735],recv_window[7500] (ErrCode: 10002). Added 2.5 seconds to recv_window. 1 retries remain.
+ERROR:pybit._http_manager:invalid request, please check your server timestamp or recv_window param. req_timestamp[1747504078617],server_timestamp[1747504077346],recv_window[10000] (ErrCode: 10002). Added 2.5 seconds to recv_window. 0 retries remain.
+ERROR:root:Balance Error: Bad request. retries exceeded maximum. (ErrCode: 400) (ErrTime: 17:48:02).
+Request \u2192 GET https://api-testnet.bybit.com/v5/account/wallet-balance: accountType=UNIFIED&coin=USDT.
