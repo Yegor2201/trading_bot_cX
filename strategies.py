@@ -1,5 +1,6 @@
-import talib
 import numpy as np
+import pandas as pd
+import ta
 from pybit.unified_trading import HTTP
 from database import save_trade
 
@@ -14,8 +15,8 @@ class TradingStrategies:
     @staticmethod
     def calculate_rsi(data: list, period: int = 14) -> float:
         """Calculate RSI from candle data"""
-        closes = [float(d[4]) for d in data]  # Close price at index 4
-        return talib.RSI(np.array(closes), period)[-1]
+        closes = pd.Series([float(d[4]) for d in data])  # Close price at index 4
+        return ta.momentum.rsi(closes, window=period).iloc[-1]
 
     def rsi_strategy(self, symbol: str) -> str:
         """RSI-based trading signal"""

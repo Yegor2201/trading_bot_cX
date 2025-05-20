@@ -2,10 +2,10 @@
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from dotenv import load_dotenv  # Environment variables loader
+from dotenv import load_dotenv
 import uvicorn
 
-# 🚨 MUST BE FIRST! Load environment variables before other imports
+# Load environment variables first
 load_dotenv()
 
 from strategies import TradingStrategies, RiskManagement
@@ -16,17 +16,15 @@ from security import validate_keys
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# ========== CONFIGURATION ==========
+# Configuration
 SYMBOL = "BTCUSDT"
 LEVERAGE = 8
-# ===================================
 
-# Initialize API credentials with error handling
+# Initialize API credentials
 try:
     API_KEY, API_SECRET = validate_keys()
 except Exception as e:
-    print(
-        f"""
+    print(f"""
     ⚠️ CRITICAL STARTUP ERROR ⚠️
     {str(e)}
     
@@ -38,8 +36,7 @@ except Exception as e:
     Generate Fernet key with:
     from cryptography.fernet import Fernet
     print(Fernet.generate_key().decode())
-    """
-    )
+    """)
     exit(1)
 
 # Initialize services
@@ -47,21 +44,24 @@ strategy = TradingStrategies(API_KEY, API_SECRET)
 risk_mgmt = RiskManagement(leverage=LEVERAGE)
 trading_active = False
 
-
-# ========== HELPER FUNCTIONS ==========
+# Helper Functions
 def get_balance() -> float:
     """Fetch current USDT wallet balance"""
-    response = strategy.client.get_wallet_balance(accountType="UNIFIED", coin="USDT")
-    return float(response["result"]["list"][0]["coin"][0]["walletBalance"])
-
+    response = strategy.client.get_wallet_balance(
+        accountType="UNIFIED",
+        coin="USDT"
+    )
+    return float(response['result']['list'][0]['coin'][0]['walletBalance'])
 
 def get_current_price(symbol: str) -> float:
     """Get latest price for trading pair"""
-    ticker = strategy.client.get_tickers(category="linear", symbol=symbol)
-    return float(ticker["result"]["list"][0]["lastPrice"])
+    ticker = strategy.client.get_tickers(
+        category="linear",
+        symbol=symbol
+    )
+    return float(ticker['result']['list'][0]['lastPrice'])
 
-
-# ========== SERVER EVENTS ==========
+# Server Events
 @app.on_event("startup")
 async def initialize():
     """Initialize database and trading settings"""
@@ -71,22 +71,13 @@ async def initialize():
         print("✅ Database initialized")
         
         # 2. Set leverage
-        try:
-            strategy.client.set_position_mode(
-                category="linear",
-                symbol=SYMBOL,
-                mode="MergedSingle"
-            )
-            
-            strategy.client.set_leverage(
-                category="linear",
-                symbol=SYMBOL,
-                leverage=str(LEVERAGE)
-            )
-            print(f"✅ Leverage set to {LEVERAGE}x")
-        except Exception as e:
-            print(f"⚠️ Leverage setup: {str(e)}")
-            # Continue running even if leverage setting fails
+        strategy.client.set_leverage(
+            category="linear",
+            symbol=SYMBOL,
+            buyLeverage=str(LEVERAGE),
+            sellLeverage=str(LEVERAGE)
+        )
+        print(f"✅ Leverage set to {LEVERAGE}x")
         
         # 3. Display current balance
         try:
@@ -99,13 +90,11 @@ async def initialize():
         print(f"⚠️ Setup error: {str(e)}")
         # Don't raise the error - allow the app to start even if setup fails
 
-
-# ========== ROUTES ==========
+# Routes
 @app.get("/")
 async def dashboard():
     """Serve trading interface"""
     return FileResponse("static/index.html")
-
 
 @app.get("/metrics")
 async def get_metrics():
@@ -113,55 +102,46 @@ async def get_metrics():
     try:
         # Get current balance
         balance = get_balance()
-
+        
         # Get closed trades for calculating metrics
         closed_trades = get_closed_trades()
-
+        
         # Calculate win rate
         if closed_trades:
-            winning_trades = len(
-                [trade for trade in closed_trades if float(trade[6]) > 0]
-            )
+            winning_trades = len([trade for trade in closed_trades if float(trade[6]) > 0])
             win_rate = (winning_trades / len(closed_trades)) * 100
         else:
             win_rate = 0
-
+            
         # Calculate profit factor and max drawdown
         if closed_trades:
-            profits = sum(
-                [float(trade[6]) for trade in closed_trades if float(trade[6]) > 0]
-            )
-            losses = abs(
-                sum([float(trade[6]) for trade in closed_trades if float(trade[6]) < 0])
-            )
+            profits = sum([float(trade[6]) for trade in closed_trades if float(trade[6]) > 0])
+            losses = abs(sum([float(trade[6]) for trade in closed_trades if float(trade[6]) < 0]))
             profit_factor = profits / losses if losses > 0 else profits
-
+            
             # Calculate max drawdown
             equity_curve = []
             current_equity = 100  # Start with base 100
             for trade in closed_trades:
-                current_equity *= 1 + float(trade[6]) / 100
+                current_equity *= (1 + float(trade[6])/100)
                 equity_curve.append(current_equity)
-
+            
             max_equity = max(equity_curve)
-            max_drawdown = min(
-                [((max_equity - equity) / max_equity) * 100 for equity in equity_curve]
-            )
+            max_drawdown = min([((max_equity - equity) / max_equity) * 100 for equity in equity_curve])
         else:
             profit_factor = 0
             max_drawdown = 0
-
+            
         return {
             "balance": balance,
             "win_rate": round(win_rate, 2),
             "profit_factor": round(profit_factor, 2),
-            "max_drawdown": round(max_drawdown, 2),
+            "max_drawdown": round(max_drawdown, 2)
         }
-
+        
     except Exception as e:
         print(f"⚠️ Metrics error: {str(e)}")
         return {"error": str(e)}
-
 
 @app.post("/start")
 async def start_bot(background_tasks: BackgroundTasks):
@@ -173,37 +153,38 @@ async def start_bot(background_tasks: BackgroundTasks):
         return {"status": "Trading bot activated"}
     return {"status": "Bot already running"}
 
-
 @app.get("/trades")
 async def trade_history():
     """Get trade history"""
-    return {"active_trades": get_active_trades(), "closed_trades": get_closed_trades()}
+    return {
+        "active_trades": get_active_trades(),
+        "closed_trades": get_closed_trades()
+    }
 
-
-# ========== TRADING LOGIC ==========
+# Trading Logic
 async def run_strategy():
     """Core trading algorithm"""
+    global trading_active
     while trading_active:
         try:
             balance = get_balance()
             decision = strategy.rsi_strategy(SYMBOL)
-
+            
             if decision != "hold":
                 price = get_current_price(SYMBOL)
                 size = risk_mgmt.calculate_size(balance, price)
-
+                
                 trade = strategy.client.place_order(
                     category="linear",
                     symbol=SYMBOL,
                     side="Buy" if decision == "buy" else "Sell",
                     orderType="Market",
-                    qty=str(size),
+                    qty=str(size)
                 )
-                save_trade(trade["result"])
-
+                save_trade(trade['result'])
+                
         except Exception as e:
             print(f"⚠️ Trading error: {str(e)}")
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
