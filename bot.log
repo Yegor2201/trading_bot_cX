@@ -1,40 +1,352 @@
-/workspaces/trading_bot_cX/main.py:150: DeprecationWarning: 
+nohup: ignoring input
+2025-05-21 21:22:39,297 - root - INFO - ✅ API credentials validated successfully
+/workspaces/trading_bot_cX/main.py:151: DeprecationWarning: 
         on_event is deprecated, use lifespan event handlers instead.
 
         Read more about it in the
         [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
         
   @app.on_event("startup")
-INFO:     Started server process [150637]
+INFO:     Started server process [145589]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8000): address already in use
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
+INFO:     Uvicorn running on http://0.0.0.0:5000 (Press CTRL+C to quit)
 🔧 Initializing trading bot...
 ℹ️ BTCUSDT leverage already set or not needed
 ℹ️ ETHUSDT leverage already set or not needed
 ℹ️ AAVEUSDT leverage already set or not needed
 ℹ️ APEXUSDT leverage already set or not needed
 Checking for profitable trades to close...
-Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64729.18233', 'accountIMRate': '0', 'totalMarginBalance': '9990.373868', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9990.373868', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9990.373868', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9990.373868', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747839990579}
-Current balance: 9990.373868 USDT
-Daily profit target achieved (187.11%), using lower profit threshold: 1.0%
-Trade demo-1747825468-BTCUSDT-0 current P&L: -2.29% (-79.80 USDT)
-Trade demo-1747825468-BTCUSDT-1 current P&L: -1.43% (-22.56 USDT)
-Trade sim-1747825627-AAVEUSDT has explicit take profit set to 285.3924, skipping auto-close check
-Trade sim-1747825750-AAVEUSDT has explicit take profit set to 285.3924, skipping auto-close check
-Trade sim-1747825873-AAVEUSDT has explicit take profit set to 285.3924, skipping auto-close check
-Trade sim-1747839602-HMSTRUSDT current P&L: -2.96% (-47.39 USDT)
-Trade sim-1747839647-HMSTRUSDT current P&L: -2.96% (-29.62 USDT)
-Trade sim-1747839663-HMSTRUSDT current P&L: -2.96% (-47.39 USDT)
-Trade sim-1747839708-HMSTRUSDT current P&L: -2.96% (-29.62 USDT)
-Trade sim-1747839725-HMSTRUSDT current P&L: -2.96% (-47.40 USDT)
-Trade sim-1747839770-HMSTRUSDT current P&L: -2.96% (-29.62 USDT)
-Trade sim-1747839786-HMSTRUSDT current P&L: -2.96% (-47.39 USDT)
-Trade sim-1747839831-HMSTRUSDT current P&L: -2.96% (-29.62 USDT)
-Trade sim-1747839848-HMSTRUSDT current P&L: -2.96% (-47.39 USDT)
-Trade sim-1747839893-HMSTRUSDT current P&L: -2.96% (-29.62 USDT)
-Trade sim-1747839909-HMSTRUSDT current P&L: -2.96% (-47.39 USDT)
-Trade sim-1747839954-HMSTRUSDT current P&L: -2.96% (-29.62 USDT)
-Trade sim-1747839970-HMSTRUSDT current P&L: -2.96% (-47.38 USDT)
+No active trades to check
+INFO:     93.172.219.173:0 - "GET /static/profitability-analysis.js HTTP/1.1" 304 Not Modified
+INFO:     93.172.219.173:0 - "GET /static/chart-enhancements.js HTTP/1.1" 304 Not Modified
+INFO:     93.172.219.173:0 - "GET /static/bybit-api.js HTTP/1.1" 304 Not Modified
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64110.7936465', 'accountIMRate': '0', 'totalMarginBalance': '9991.861782', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9991.861782', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9991.861782', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9991.861782', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747862563178}
+Debug: Fetched base balance = 9991.861782
+Debug: Unrealized PnL = 0.00, Total balance = 9991.86
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /static/profitability-analysis.js HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /static/bybit-api.js HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /static/chart-enhancements.js HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64106.9308275', 'accountIMRate': '0', 'totalMarginBalance': '9992.071488', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9992.071488', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9992.071488', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9992.071488', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747862568582}
+Debug: Fetched base balance = 9992.071488
+Debug: Unrealized PnL = 0.00, Total balance = 9992.07
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64107.4147875', 'accountIMRate': '0', 'totalMarginBalance': '9992.061502', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9992.061502', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9992.061502', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9992.061502', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747862595745}
+Debug: Fetched base balance = 9992.061502
+Debug: Unrealized PnL = 0.00, Total balance = 9992.06
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /static/utilities.js HTTP/1.1" 304 Not Modified
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64113.5042285', 'accountIMRate': '0', 'totalMarginBalance': '9992.101446', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9992.101446', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9992.101446', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9992.101446', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747862822038}
+Debug: Fetched base balance = 9992.101446
+Debug: Unrealized PnL = 0.00, Total balance = 9992.10
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64097.563831', 'accountIMRate': '0', 'totalMarginBalance': '9991.502286', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9991.502286', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9991.502286', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9991.502286', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747862848013}
+Debug: Fetched base balance = 9991.502286
+Debug: Unrealized PnL = 0.00, Total balance = 9991.50
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64097.508', 'accountIMRate': '0', 'totalMarginBalance': '9991.452356', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9991.452356', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9991.452356', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9991.452356', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747862852474}
+Debug: Fetched base balance = 9991.452356
+Debug: Unrealized PnL = 0.00, Total balance = 9991.45
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+Checking for profitable trades to close...
+No active trades to check
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64095.906254', 'accountIMRate': '0', 'totalMarginBalance': '9991.512272', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9991.512272', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9991.512272', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9991.512272', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747862865973}
+Debug: Fetched base balance = 9991.512272
+Debug: Unrealized PnL = 0.00, Total balance = 9991.51
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64091.4919965', 'accountIMRate': '0', 'totalMarginBalance': '9992.211292', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9992.211292', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9992.211292', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9992.211292', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747862877152}
+Debug: Fetched base balance = 9992.211292
+Debug: Unrealized PnL = 0.00, Total balance = 9992.21
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+Checking for profitable trades to close...
+No active trades to check
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+Checking for profitable trades to close...
+No active trades to check
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /static/app.js HTTP/1.1" 304 Not Modified
+INFO:     93.172.219.173:0 - "GET /static/ui-fix.js HTTP/1.1" 304 Not Modified
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64215.1482595', 'accountIMRate': '0', 'totalMarginBalance': '9991.502286', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9991.502286', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9991.502286', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9991.502286', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747863715263}
+Debug: Fetched base balance = 9991.502286
+Debug: Unrealized PnL = 0.00, Total balance = 9991.50
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+Checking for profitable trades to close...
+No active trades to check
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /static/style.css HTTP/1.1" 304 Not Modified
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64233.7895765', 'accountIMRate': '0', 'totalMarginBalance': '9991.502286', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9991.502286', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9991.502286', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9991.502286', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747863862388}
+Debug: Fetched base balance = 9991.502286
+Debug: Unrealized PnL = 0.00, Total balance = 9991.50
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64207.067145', 'accountIMRate': '0', 'totalMarginBalance': '9991.302566', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9991.302566', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9991.302566', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9991.302566', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747863866556}
+Debug: Fetched base balance = 9991.302566
+Debug: Unrealized PnL = 0.00, Total balance = 9991.30
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+Checking for profitable trades to close...
+No active trades to check
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET / HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /static/utilities.js HTTP/1.1" 304 Not Modified
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+Debug: Full balance response = {'retCode': 0, 'retMsg': 'OK', 'result': {'list': [{'totalEquity': '64278.519947', 'accountIMRate': '0', 'totalMarginBalance': '9991.662062', 'totalInitialMargin': '0', 'accountType': 'UNIFIED', 'totalAvailableBalance': '9991.662062', 'accountMMRate': '0', 'totalPerpUPL': '0', 'totalWalletBalance': '9991.662062', 'accountLTV': '0', 'totalMaintenanceMargin': '0', 'coin': [{'availableToBorrow': '', 'bonus': '0', 'accruedInterest': '0', 'availableToWithdraw': '', 'totalOrderIM': '0', 'equity': '9986', 'totalPositionMM': '0', 'usdValue': '9991.662062', 'unrealisedPnl': '0', 'collateralSwitch': True, 'spotHedgingQty': '0', 'borrowAmount': '0.000000000000000000', 'totalPositionIM': '0', 'walletBalance': '9986', 'cumRealisedPnl': '0', 'locked': '0', 'marginCollateral': True, 'coin': 'USDT'}]}]}, 'retExtInfo': {}, 'time': 1747864248965}
+Debug: Fetched base balance = 9991.662062
+Debug: Unrealized PnL = 0.00, Total balance = 9991.66
+INFO:     93.172.219.173:0 - "GET /balance HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /api_settings HTTP/1.1" 404 Not Found
+API error: OK, generating demo chart data
+INFO:     93.172.219.173:0 - "GET /chart_data?symbol=BTCUSDT HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+Checking for profitable trades to close...
+No active trades to check
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /profits HTTP/1.1" 200 OK
+INFO:     93.172.219.173:0 - "GET /trades HTTP/1.1" 200 OK

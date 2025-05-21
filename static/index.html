@@ -199,17 +199,6 @@
     </header>
 
     <div class="container">
-        <!-- Sidebar with Symbol Selection -->
-        <div id="sidebar">
-            <h3>Chart Symbol</h3>
-            <select id="chart-symbol" onchange="updateChart()">
-                <option value="BTCUSDT" selected>BTCUSDT</option>
-                <option value="ETHUSDT">ETHUSDT</option>
-                <option value="AAVEUSDT">AAVEUSDT</option>
-                <option value="APEXUSDT">APEXUSDT</option>
-            </select>
-        </div>
-
         <!-- Main Content Container -->
         <div id="main-content">
             <!-- Dashboard Tab -->
@@ -479,6 +468,9 @@
         <p>Trading Bot Status: <span id="bot-status">Idle</span></p>
     </footer>
 
+    <!-- Core utility functions -->
+    <script src="/static/utilities.js"></script>
+    <!-- Main application script -->
     <script src="/static/app.js"></script>
     <!-- UI Fix Script - Added to fix any UI rendering issues -->
     <script src="/static/ui-fix.js" defer></script>

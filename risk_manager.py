@@ -6,27 +6,124 @@ This module handles automatic risk adjustment based on market conditions.
 import json
 import logging
 import requests
+import numpy as np
 from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('risk_manager')
 
+def calculate_position_size(balance, price, stop_loss, max_risk_percent=1.0):
+    """
+    Calculate position size based on account balance and risk parameters
+    
+    Args:
+        balance: Current account balance
+        price: Current asset price
+        stop_loss: Stop loss price
+        max_risk_percent: Maximum risk per trade as percentage
+    
+    Returns:
+        dict: Position size and risk metrics
+    """
+    try:
+        # Calculate risk amount
+        risk_amount = balance * (max_risk_percent / 100)
+        
+        # Calculate price difference to stop loss
+        price_diff = abs(price - stop_loss)
+        
+        if price_diff == 0:
+            return {'position_size': 0, 'risk_amount': 0}
+        
+        # Calculate position size based on risk
+        position_size = risk_amount / price_diff
+        
+        # Apply additional safety checks
+        max_position_size = balance * 0.5 / price  # Max 50% of balance
+        position_size = min(position_size, max_position_size)
+        
+        # Round position size to appropriate precision
+        position_size = round(position_size, 4)
+        
+        actual_risk = position_size * price_diff
+        risk_percent = (actual_risk / balance) * 100
+        
+        return {
+            'position_size': position_size,
+            'risk_amount': actual_risk,
+            'risk_percent': risk_percent
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculating position size: {e}")
+        return {'position_size': 0, 'risk_amount': 0}
+
+def adjust_for_volatility(position_size, volatility, max_volatility_adjustment=0.5):
+    """
+    Adjust position size based on market volatility
+    """
+    try:
+        # Normalize volatility to a scale of 0-1
+        vol_factor = min(volatility / 100, 1)
+        
+        # Reduce position size as volatility increases
+        adjustment = 1 - (vol_factor * max_volatility_adjustment)
+        
+        return position_size * adjustment
+        
+    except Exception as e:
+        logger.error(f"Error adjusting for volatility: {e}")
+        return position_size
+
+def calculate_optimal_take_profit(entry_price, stop_loss, min_risk_reward=2):
+    """
+    Calculate optimal take profit level based on risk-reward ratio
+    """
+    try:
+        risk = abs(entry_price - stop_loss)
+        take_profit = entry_price + (risk * min_risk_reward)
+        
+        return take_profit
+        
+    except Exception as e:
+        logger.error(f"Error calculating take profit: {e}")
+        return None
+
 class RiskManager:
     def __init__(self, config_path='config.json'):
-        """Initialize the risk manager with configuration"""
-        self.config = self._load_config(config_path)
-        self.auto_risk_config = self.config.get('auto_risk', {
-            'enabled': True,
-            'min_risk': 0.5,
-            'max_risk': 5.0,
-            'volume_weight': 0.3,
-            'volatility_weight': 0.4,
-            'market_cap_weight': 0.3
-        })
-        self.api_key = self.config.get('api_key', '')
-        logger.info("Risk manager initialized with auto-risk enabled: %s", self.auto_risk_config['enabled'])
-    
+        """Initialize risk manager with enhanced risk control"""
+        self.config = {
+            'max_risk_per_trade': 0.015,      # Maximum 1.5% risk per trade
+            'max_total_risk': 0.06,           # Maximum 6% total portfolio risk
+            'min_reward_ratio': 3.0,          # Minimum 3:1 reward-to-risk ratio
+            'max_positions': 4,               # Maximum concurrent positions
+            'max_correlation': 0.7,           # Maximum correlation between positions
+            'volatility_scaling': True,       # Enable volatility-based position sizing
+            'trailing_stop': True,            # Enable trailing stops
+            'profit_lock': {
+                'enabled': True,
+                'threshold': 0.02,            # Lock in profits at 2% gain
+                'lock_amount': 0.5            # Lock in 50% of gains
+            }
+        }
+        
+        # Dynamic stop loss settings
+        self.stop_loss_settings = {
+            'base_atr_multiple': 1.5,         # Base ATR multiplier
+            'vol_adjustment': 0.2,            # Volatility adjustment factor
+            'max_stop_distance': 0.04,        # Maximum 4% stop distance
+            'min_stop_distance': 0.01         # Minimum 1% stop distance
+        }
+        
+        # Position sizing settings
+        self.position_settings = {
+            'vol_scale_factor': 0.5,          # Reduce size in high volatility
+            'min_position_size': 0.01,        # Minimum position size
+            'max_position_size': 0.15,        # Maximum 15% of portfolio per position
+            'size_reduction': 0.2             # Reduce size by 20% for each active position
+        }
+
     def _load_config(self, config_path):
         """Load configuration from the config file"""
         try:
@@ -119,7 +216,7 @@ class RiskManager:
         
         # Get min and max risk boundaries
         min_risk = self.auto_risk_config.get('min_risk', 0.5)
-        max_risk = self.auto_risk_config.get('max_risk', 5.0)
+        max_risk = self.auto_risk_config.get('max_risk', 3.0)
         
         # Get market data
         market_data = self.get_market_data(symbol)
@@ -165,30 +262,102 @@ class RiskManager:
         
         return risk_percentage
     
-    def get_position_size(self, symbol, account_balance, entry_price):
-        """Calculate position size based on risk percentage and account balance"""
-        risk_percentage = self.calculate_risk_percentage(symbol)
-        risk_amount = account_balance * (risk_percentage / 100)
-        
-        # Use fixed 5% stop loss for simplicity
-        # In a real implementation, this should be dynamically calculated
-        stop_loss_percentage = 5.0
-        
-        # Calculate position size
-        position_size = risk_amount / (entry_price * (stop_loss_percentage / 100))
-        
-        # Adjust for leverage if applicable
-        leverage = self.config.get('leverage', 1)
-        if leverage > 1:
-            position_size = position_size * leverage
-        
-        return {
-            'position_size': position_size,
-            'risk_percentage': risk_percentage,
-            'risk_amount': risk_amount,
-            'stop_loss_percentage': stop_loss_percentage,
-            'leverage': leverage
-        }
+    def calculate_position_size(self, symbol, account_balance, current_price, volatility, active_positions):
+        """Calculate position size with enhanced risk management"""
+        try:
+            # Base risk percentage adjusted for volatility
+            base_risk = self.config['max_risk_per_trade']
+            
+            # Reduce risk in high volatility conditions
+            if volatility > 2.0:  # If volatility > 2%
+                base_risk *= max(0.5, 1 - (volatility - 2.0) * self.position_settings['vol_scale_factor'])
+            
+            # Reduce risk based on number of active positions
+            position_count = len(active_positions)
+            if position_count > 0:
+                base_risk *= (1 - position_count * self.position_settings['size_reduction'])
+            
+            # Calculate dollar risk
+            dollar_risk = account_balance * base_risk
+            
+            # Calculate position size
+            position_size = dollar_risk / current_price
+            
+            # Apply limits
+            min_size = self.position_settings['min_position_size']
+            max_size = account_balance * self.position_settings['max_position_size'] / current_price
+            
+            return min(max(position_size, min_size), max_size)
+            
+        except Exception as e:
+            logger.error(f"Error calculating position size: {e}")
+            return 0.0
+
+    def calculate_dynamic_stop_loss(self, symbol, side, entry_price):
+        """Calculate dynamic stop-loss based on market conditions"""
+        try:
+            market_data = self.get_market_data(symbol)
+            volatility = (market_data.get('high_price_24h', 0) - market_data.get('low_price_24h', 0)) / market_data.get('price', 1)
+            
+            # Base stop-loss percentage on volatility
+            base_sl = min(2.0, max(0.5, volatility * 100 * 0.15))  # 15% of daily volatility
+            
+            if side == 'Buy':
+                return entry_price * (1 - base_sl/100)
+            else:
+                return entry_price * (1 + base_sl/100)
+                
+        except Exception as e:
+            logger.error(f"Error calculating dynamic stop-loss: {str(e)}")
+            return None
+            
+    def calculate_take_profit(self, symbol, side, entry_price, stop_loss):
+        """Calculate take-profit based on risk:reward ratio"""
+        try:
+            risk = abs(entry_price - stop_loss)
+            # Minimum 2:1 risk:reward ratio
+            if side == 'Buy':
+                return entry_price + (risk * 2)
+            else:
+                return entry_price - (risk * 2)
+                
+        except Exception as e:
+            logger.error(f"Error calculating take-profit: {str(e)}")
+            return None
+
+    def should_adjust_position(self, position, current_price, volatility):
+        """Determine if position should be adjusted"""
+        try:
+            entry_price = float(position['entry_price'])
+            side = position['side'].lower()
+            
+            # Calculate unrealized PnL
+            if side == 'buy':
+                pnl_pct = (current_price - entry_price) / entry_price
+            else:
+                pnl_pct = (entry_price - current_price) / entry_price
+            
+            # Check profit lock conditions
+            if self.config['profit_lock']['enabled'] and pnl_pct > self.config['profit_lock']['threshold']:
+                return {
+                    'action': 'reduce',
+                    'amount': position['size'] * self.config['profit_lock']['lock_amount'],
+                    'reason': 'Profit lock triggered'
+                }
+            
+            # Check stop adjustment in high volatility
+            if volatility > 3.0 and pnl_pct < 0:
+                return {
+                    'action': 'close',
+                    'amount': position['size'],
+                    'reason': 'High volatility protection'
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error in position adjustment: {e}")
+            return None
 
 # Standalone testing
 if __name__ == "__main__":

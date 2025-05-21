@@ -1,8 +1,12 @@
 let refreshInterval;
 let balanceInterval;
 let chartUpdateInterval;
-let chart;
-let candleSeries;
+
+// Global chart variables
+let chart = null;
+let candleSeries = null;
+let volumeSeries = null;
+
 let activeTradeMarkers = [];
 let closedTradeMarkers = [];
 let currentSymbol = "BTCUSDT";
@@ -33,124 +37,64 @@ let chartOptions = {
     height: 400,
 };
 
+// Function to load chart library
+async function loadChartLibrary() {
+    return new Promise((resolve, reject) => {
+        if (typeof LightweightCharts !== 'undefined') {
+            resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load chart library'));
+        document.head.appendChild(script);
+    });
+}
+
 // Function to initialize the chart
-function initializeChart() {
+async function initializeChart() {
     try {
         console.log('Initializing chart...');
+        showLoading();
+        
+        // First, ensure the chart library is loaded
+        await loadChartLibrary();
+        
         const chartContainer = document.getElementById('price-chart');
-        
         if (!chartContainer) {
-            console.error('Chart container not found!');
-            // Create a message for the user
-            const errorMsg = document.createElement('div');
-            errorMsg.style.padding = '20px';
-            errorMsg.style.background = '#fff';
-            errorMsg.style.border = '1px solid #ddd';
-            errorMsg.style.borderRadius = '4px';
-            errorMsg.innerHTML = `
-                <h3 style="color: #d32f2f;">Chart Error</h3>
-                <p>Could not find chart container.</p>
-                <button onclick="window.location.reload()">Reload Page</button>
-            `;
-            
-            // Find a safe place to append the message
-            const container = document.querySelector('.container') || document.body;
-            container.appendChild(errorMsg);
-            return;
+            throw new Error('Chart container not found');
         }
         
-        // Check if LightweightCharts is defined
-        if (typeof window.LightweightCharts === 'undefined') {
-            console.error('LightweightCharts is not defined! Attempting to load it...');
-            
-            // Show loading message
-            chartContainer.innerHTML = `
-                <div style="padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
-                    <h3>Loading Chart Library...</h3>
-                    <p>Please wait while we load the TradingView chart library.</p>
-                    <div style="width: 100%; height: 4px; background: #eee; margin-top: 10px;">
-                        <div style="width: 0%; height: 100%; background: #4CAF50;" id="chart-loading-bar"></div>
-                    </div>
-                </div>
-            `;
-            
-            // Animate loading bar
-            let progress = 0;
-            const loadingBar = document.getElementById('chart-loading-bar');
-            const loadingInterval = setInterval(() => {
-                progress += 1;
-                if (progress > 95) {
-                    clearInterval(loadingInterval);
-                }
-                if (loadingBar) loadingBar.style.width = `${progress}%`;
-            }, 50);
-            
-            // Try to load the library with fallbacks
-            const sources = [
-                'https://cdn.jsdelivr.net/npm/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.min.js',
-                'https://unpkg.com/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js',
-                'https://cdn.skypack.dev/lightweight-charts@4.0.0'
-            ];
-            
-            function tryLoadScript(index) {
-                if (index >= sources.length) {
-                    console.error('All chart library fallbacks failed!');
-                    if (loadingBar) loadingBar.style.background = '#f44336';
-                    clearInterval(loadingInterval);
-                    
-                    chartContainer.innerHTML = `
-                        <div style="padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
-                            <h3 style="color: #d32f2f;">Chart Library Error</h3>
-                            <p>Could not load the TradingView chart library. Please check your internet connection.</p>
-                            <button onclick="window.location.reload()">Reload Page</button>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                console.log(`Trying chart library source #${index+1}: ${sources[index]}`);
-                const script = document.createElement('script');
-                script.src = sources[index];
-                
-                script.onload = () => {
-                    console.log(`Successfully loaded chart library from ${sources[index]}!`);
-                    clearInterval(loadingInterval);
-                    if (loadingBar) loadingBar.style.width = '100%';
-                    // Make sure LightweightCharts is in the global scope
-                    window.LightweightCharts = LightweightCharts;
-                    // Try to initialize again
-                    setTimeout(initializeChart, 500);
-                };
-                
-                script.onerror = () => {
-                    console.error(`Failed to load chart library from ${sources[index]}`);
-                    tryLoadScript(index + 1);
-                };
-                
-                document.head.appendChild(script);
-            }
-            
-            tryLoadScript(0);
-            return;
-        }
+        // Clear any existing chart
+        chartContainer.innerHTML = '';
         
-        // If we get here, the chart library is loaded
-        console.log('Chart library is available. Creating chart...');
+        // Set initial dimensions
+        chartContainer.style.height = '500px';
+        chartContainer.style.width = '100%';
         
-        
-        // Get the container size
+        // Get actual container dimensions
         const containerWidth = chartContainer.clientWidth || 800;
-        const containerHeight = 500; // Fixed height for better display
+        const containerHeight = chartContainer.clientHeight || 500;
         
-        console.log(`Creating chart with dimensions: ${containerWidth}x${containerHeight}`);
-        
-        // Update options with container size and crosshair mode
-        const options = {
-            ...chartOptions,
+        // Cleanup existing chart instance if it exists
+        if (chart) {
+            chart.remove();
+            chart = null;
+        }
+
+        // Create chart with proper dimensions
+        chart = LightweightCharts.createChart(chartContainer, {
             width: containerWidth,
             height: containerHeight,
-            crosshair: {
-                mode: LightweightCharts.CrosshairMode.Normal,
+            layout: {
+                background: { color: '#ffffff' },
+                textColor: '#333333',
+            },
+            grid: {
+                vertLines: { color: 'rgba(42, 46, 57, 0.1)' },
+                horzLines: { color: 'rgba(42, 46, 57, 0.1)' },
             },
             timeScale: {
                 timeVisible: true,
@@ -159,58 +103,85 @@ function initializeChart() {
                 rightOffset: 5,
                 barSpacing: 8,
             },
-            layout: {
-                background: { color: '#ffffff' },
-                textColor: '#333',
+            crosshair: {
+                mode: LightweightCharts.CrosshairMode.Normal,
             },
-            grid: {
-                vertLines: { color: 'rgba(42, 46, 57, 0.1)' },
-                horzLines: { color: 'rgba(42, 46, 57, 0.1)' },
+            handleScale: {
+                mouseWheel: true,
+                pinch: true,
             },
-        };
-        
-        // Create the chart
-        chart = LightweightCharts.createChart(chartContainer, options);
-        
-        // Add window resize handler
-        const handleResize = () => {
-            const newWidth = chartContainer.clientWidth;
-            const newHeight = chartContainer.clientHeight;
-            chart.resize(newWidth, newHeight);
-        };
-        
-        window.addEventListener('resize', handleResize);
-        
-        // Create candlestick series
-        candleSeries = chart.addCandlestickSeries({
-            upColor: '#4CAF50',
-            downColor: '#FF5252',
-            wickUpColor: '#4CAF50',
-            wickDownColor: '#FF5252',
-            borderVisible: false,
+            handleScroll: {
+                mouseWheel: true,
+                pressedMouseMove: true,
+                horzTouchDrag: true,
+                vertTouchDrag: true,
+            }
         });
+
+        // Initialize candlestick series
+        candleSeries = chart.addCandlestickSeries({
+            upColor: '#26a69a',
+            downColor: '#ef5350',
+            borderVisible: false,
+            wickUpColor: '#26a69a',
+            wickDownColor: '#ef5350'
+        });
+
+        // Initialize volume series
+        volumeSeries = chart.addHistogramSeries({
+            color: '#26a69a',
+            priceFormat: {
+                type: 'volume',
+            },
+            priceLineVisible: false,
+            priceScaleId: ''
+        });
+
+        // Set up window resize handler
+        const resizeHandler = () => {
+            // Get the container element
+            const chartContainer = document.getElementById('price-chart');
+            if (!chartContainer || !chart) return;
+            
+            // Get actual container dimensions, but only update if they're valid
+            const width = chartContainer.clientWidth || 800;
+            const height = chartContainer.clientHeight || 500;
+            
+            // Only resize if dimensions are reasonable (prevent minimizing)
+            if (width > 200 && height > 200) {
+                chart.applyOptions({ width, height });
+            }
+        };
+
+        // Use a debounced version of the resize handler to prevent excessive updates
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resizeHandler, 100);
+        });
+
+        // Don't trigger resize on scroll events
+        window.addEventListener('scroll', (e) => {
+            e.stopPropagation();
+        }, true);
+
+        // Load initial data
+        await loadChartData();
+        hideLoading();
         
-        // Fetch initial data
-        fetchCandlestickData();
-        
-        // Update every minute
-        chartUpdateInterval = setInterval(fetchCandlestickData, 60000);
-        
-        console.log('Chart initialized successfully');
+        return Promise.resolve();
     } catch (error) {
-        console.error('Error initializing chart:', error);
-        
-        // Show error to user
+        console.error('Chart initialization failed:', error);
+        hideLoading();
         const chartContainer = document.getElementById('price-chart');
         if (chartContainer) {
             chartContainer.innerHTML = `
-                <div style="padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
-                    <h3 style="color: #d32f2f;">Chart Error</h3>
-                    <p>There was an error initializing the chart: ${error.message}</p>
-                    <button onclick="initializeChart()">Try Again</button>
-                </div>
-            `;
+                <div class="chart-error" style="text-align: center; padding: 20px;">
+                    <p>Chart initialization failed: ${error.message}</p>
+                    <button onclick="initializeChart()" style="padding: 10px; margin-top: 10px;">Retry</button>
+                </div>`;
         }
+        return Promise.reject(error);
     }
 }
 
@@ -254,6 +225,8 @@ function createDemoChartData() {
     if (currentSymbol === 'ETHUSDT') price = 3500;
     else if (currentSymbol.includes('AAVE')) price = 150;
     else if (currentSymbol.includes('APEX')) price = 25;
+    else if (currentSymbol.includes('SOL')) price = 100;
+    else if (currentSymbol.includes('BNB')) price = 300;
     
     // Create 168 hourly candles (1 week)
     for (let i = 0; i < 168; i++) {
@@ -323,55 +296,85 @@ function switchTab(tabName) {
 // Function to fetch candlestick data
 async function fetchCandlestickData() {
     try {
+        showLoading();
+        
         if (!chart || !candleSeries) {
-            console.error('Chart not initialized, cannot fetch candlestick data');
-            return;
+            console.warn('Chart not initialized, attempting to initialize...');
+            await initializeChart();
+            if (!chart || !candleSeries) {
+                throw new Error('Chart initialization failed');
+            }
+        }
+        
+        // Ensure chart is properly sized
+        const chartContainer = document.getElementById('price-chart');
+        if (chartContainer) {
+            chart.resize(
+                chartContainer.clientWidth,
+                chartContainer.clientHeight || 500
+            );
         }
         
         console.log(`Fetching chart data for ${currentSymbol}...`);
         const response = await fetch(`/chart_data?symbol=${currentSymbol}`);
         
         if (!response.ok) {
-            throw new Error(`Failed to fetch chart data: ${response.status}`);
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
         }
         
         const data = await response.json();
+        
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid data format received from server');
+        }
+        
         console.log(`Received ${data.candles ? data.candles.length : 0} candles`);
         
-        // Update chart with new data
-        if (data.candles && data.candles.length > 0) {
+        if (data.candles && Array.isArray(data.candles) && data.candles.length > 0) {
             candleSeries.setData(data.candles);
             
-            // Fetch trades to add markers
-            const tradesResponse = await fetch('/trades');
-            if (tradesResponse.ok) {
-                const trades = await tradesResponse.json();
-                updateTradeMarkers(trades);
-                
-                // Update symbol in UI
-                const symbolLabel = document.getElementById('current-symbol-label');
-                if (symbolLabel) {
-                    symbolLabel.textContent = currentSymbol;
+            try {
+                // Fetch trades to add markers
+                const tradesResponse = await fetch('/trades');
+                if (!tradesResponse.ok) {
+                    throw new Error(`Failed to fetch trades: ${tradesResponse.status}`);
                 }
                 
-                // Update the document title to include the symbol
-                document.title = `${currentSymbol} | Trading Bot Dashboard`;
-                
-                return trades;
+                const trades = await tradesResponse.json();
+                if (Array.isArray(trades.active_trades)) {
+                    updateTradeMarkers(trades);
+                    
+                    // Update symbol in UI
+                    const symbolLabel = document.getElementById('current-symbol-label');
+                    if (symbolLabel) {
+                        symbolLabel.textContent = currentSymbol;
+                    }
+                    
+                    // Update the document title to include the symbol
+                    document.title = `${currentSymbol} | Trading Bot Dashboard`;
+                    return trades;
+                } else {
+                    throw new Error('Invalid trades data format');
+                }
+            } catch (tradeError) {
+                console.error('Error fetching trade data:', tradeError);
+                showNotification('Could not load trade markers, but chart data is available', 'warning');
             }
         } else {
-            console.warn('No candle data received');
-            
-            // Create some demo data
+            console.warn('No candle data received, using demo data');
             const demoData = createDemoChartData();
             candleSeries.setData(demoData);
+            showNotification('Using demo data - no live data available', 'warning');
         }
     } catch (error) {
         console.error('Error fetching candlestick data:', error);
+        showNotification(`Chart data error: ${error.message}`, 'error');
         
         // Create fallback demo data on error
         const demoData = createDemoChartData();
         candleSeries.setData(demoData);
+    } finally {
+        hideLoading();
     }
 }
 
@@ -510,6 +513,7 @@ async function addTradeMarkersToChart() {
             // Ensure marker time is a valid number
             if (isNaN(marker.time)) {
                 marker.time = now - 1800; // 30 minutes ago
+                return true;
             }
             
             // Ensure marker is within visible range plus some buffer
@@ -517,8 +521,17 @@ async function addTradeMarkersToChart() {
             if (!visible) {
                 console.log(`Marker outside visible range, adjusting: ${marker.time}`);
                 marker.time = now - Math.floor(Math.random() * 7200); // Random time in last 2 hours
+                return true;
             }
-            return true; // Include all markers after adjustment
+            
+            // Only include markers for current symbol and those within range
+            return marker.text && (
+                marker.text.includes(currentSymbol) || 
+                marker.text === 'Debug marker' ||
+                marker.text.startsWith('No') ||
+                marker.text.startsWith('SL') ||
+                marker.text.startsWith('TP')
+            );
         });
         
         // Always set markers, even if empty array
@@ -539,37 +552,43 @@ async function updateChart() {
             const previousSymbol = currentSymbol;
             currentSymbol = symbolSelect.value;
             
-            // Check if we're switching symbols
             if (previousSymbol !== currentSymbol) {
                 console.log(`Switching chart from ${previousSymbol} to ${currentSymbol}`);
-                // Update document title to reflect the new symbol
                 document.title = `${currentSymbol} | Trading Bot Dashboard`;
             }
+        }
+        
+        // Ensure chart container exists and has proper dimensions
+        const chartContainer = document.getElementById('price-chart');
+        if (!chartContainer) {
+            throw new Error('Chart container not found');
+        }
+        
+        // Set minimum dimensions if needed
+        if (chartContainer.clientHeight < 400) {
+            chartContainer.style.height = '400px';
+        }
+        if (chartContainer.clientWidth < 600) {
+            chartContainer.style.width = '100%';
         }
         
         // Reinstantiate chart if it doesn't exist
         if (!chart) {
             console.log('Chart not initialized, initializing...');
-            initializeChart();
+            await initializeChart();
             return; // initializeChart will call fetchCandlestickData
         }
         
         console.log(`Updating chart for ${currentSymbol}...`);
         
+        // Update chart size with validated dimensions
+        const width = Math.max(600, chartContainer.clientWidth);
+        const height = Math.max(400, chartContainer.clientHeight);
+        chart.applyOptions({ width, height });
+        
         // Fetch the candle data
         await fetchCandlestickData();
-        
-        // Also update trades to show markers for the specific symbol
         await updateTrades();
-        
-        // Ensure the chart is properly sized
-        const chartContainer = document.getElementById('price-chart');
-        if (chartContainer && chart) {
-            chart.resize(
-                chartContainer.clientWidth,
-                chartContainer.clientHeight
-            );
-        }
         
         window.hideLoading();
     } catch (error) {
@@ -678,35 +697,82 @@ window.closeTrade = async function(tradeId) {
 
 async function updateTrades() {
     try {
-        window.showLoading();
+        showLoading();
+        
         const response = await fetch('/trades');
-        if (!response.ok) throw new Error('Failed to fetch trades');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch trades: ${response.status} ${response.statusText}`);
+        }
+        
         const trades = await response.json();
-        console.log("Trades data:", trades); // Debug log to see what we're getting
+        console.log("Trades data received:", trades);
         
-        // Update Active Trades in Dashboard
-        updateActiveTradesTable('active-trades', trades.active_trades || []);
+        // Validate trades data structure
+        if (!trades || typeof trades !== 'object') {
+            throw new Error('Invalid trades data format received');
+        }
         
-        // Update Active Trades in Trades Tab
-        updateActiveTradesTable('trades-active', trades.active_trades || []);
+        // Get references to required tables
+        const dashboardActiveTrades = document.getElementById('active-trades');
+        const tradesTabActive = document.getElementById('trades-active');
+        const dashboardClosedTrades = document.getElementById('closed-trades');
+        const tradesTabClosed = document.getElementById('trades-closed');
         
-        // Update Closed Trades in Dashboard
-        updateClosedTradesTable('closed-trades', trades.closed_trades || []);
+        if (!dashboardActiveTrades || !tradesTabActive || !dashboardClosedTrades || !tradesTabClosed) {
+            throw new Error('Required trade tables not found in DOM');
+        }
         
-        // Update Closed Trades in Trades Tab
-        updateClosedTradesTable('trades-closed', trades.closed_trades || []);
+        // Update Active Trades tables (with error handling for each table)
+        try {
+            if (!Array.isArray(trades.active_trades)) {
+                throw new Error('Active trades data is not an array');
+            }
+            updateActiveTradesTable('active-trades', trades.active_trades);
+            updateActiveTradesTable('trades-active', trades.active_trades);
+        } catch (activeError) {
+            console.error('Error updating active trades tables:', activeError);
+            showNotification('Error updating active trades display', 'error');
+        }
         
-        // Update trade markers on chart if available
-        updateTradeMarkers(trades);
+        // Update Closed Trades tables (with error handling for each table)
+        try {
+            if (!Array.isArray(trades.closed_trades)) {
+                throw new Error('Closed trades data is not an array');
+            }
+            updateClosedTradesTable('closed-trades', trades.closed_trades);
+            updateClosedTradesTable('trades-closed', trades.closed_trades);
+        } catch (closedError) {
+            console.error('Error updating closed trades tables:', closedError);
+            showNotification('Error updating closed trades display', 'error');
+        }
         
-        // Also update profit metrics
-        await updateProfitMetrics();
+        // Update trade markers on chart
+        try {
+            await updateTradeMarkers(trades);
+        } catch (markerError) {
+            console.error('Error updating trade markers:', markerError);
+            showNotification('Error updating trade markers', 'warning');
+        }
         
-        window.hideLoading();
+        // Update profit metrics
+        try {
+            await updateProfitMetrics();
+        } catch (metricsError) {
+            console.error('Error updating profit metrics:', metricsError);
+            showNotification('Error updating profit metrics', 'warning');
+        }
+        
+        hideLoading();
     } catch (error) {
-        window.hideLoading();
+        hideLoading();
         console.error('Error updating trades:', error);
-        showNotification('Failed to fetch trades data.', 'error');
+        showNotification(`Failed to update trades: ${error.message}`, 'error');
+        
+        // Create empty tables if data fetch failed
+        updateActiveTradesTable('active-trades', []);
+        updateActiveTradesTable('trades-active', []);
+        updateClosedTradesTable('closed-trades', []);
+        updateClosedTradesTable('trades-closed', []);
     }
 }
 
@@ -813,53 +879,6 @@ async function updateActiveTradesTable(tableId, activeTrades) {
         } catch (err) {
             console.error(`Error processing trade ${trade[0]}:`, err);
             return null;
-        }
-    });
-    
-    await Promise.all(activeTradePromises);
-}
-            
-            // Trade values from database:
-            // 0: id
-            // 1: symbol
-            // 2: side
-            // 3: size
-            // 4: entry_price
-            // 5: exit_price
-            // 6: pnl
-            // 7: status
-            // 8: timestamp
-            // 9: stop_loss
-            // 10: take_profit
-            
-            const row = document.createElement('tr');
-            row.className = trade[2];
-            row.setAttribute('data-trade-id', trade[0]);
-            row.innerHTML = `
-                <td>${trade[1]}</td>
-                <td class="${trade[2]}">${trade[2]}</td>
-                <td>${parseFloat(trade[3]).toFixed(4)}</td>
-                <td>${parseFloat(trade[4]).toFixed(2)}</td>
-                <td>${currentPrice.toFixed(2)}</td>
-                <td>
-                    <input type="number" id="sl-${trade[0]}" placeholder="Stop Loss" value="${trade[9] || ''}" step="0.01">
-                </td>
-                <td>
-                    <input type="number" id="tp-${trade[0]}" placeholder="Take Profit" value="${trade[10] || ''}" step="0.01">
-                </td>
-                <td class="${pnl >= 0 ? 'profit' : 'loss'}">${pnl.toFixed(2)}</td>
-                <td class="actions">
-                    <div class="action-buttons">
-                        <button class="update-btn" onclick="updateTradeSettings('${trade[0]}', document.getElementById('sl-${trade[0]}').value, document.getElementById('tp-${trade[0]}').value)">✓</button>
-                        <button class="view-btn" onclick="highlightTrade('${trade[0]}')">📊</button>
-                        <button class="close-btn" onclick="closeTrade('${trade[0]}')">Close</button>
-                    </div>
-                </td>
-            `;
-            
-            tableBody.appendChild(row);
-        } catch (e) {
-            console.error(`Error processing trade ${trade[0]}:`, e);
         }
     });
     
@@ -980,27 +999,52 @@ async function updateTradeMarkers(trades) {
     try {
         console.log('Updating trade markers with trades:', trades);
         
-        // Clear existing markers (first check they exist)
-        if (activeTradeMarkers && typeof activeTradeMarkers.length !== 'undefined' && activeTradeMarkers.length) {
-            for (const marker of activeTradeMarkers) {
-                if (marker && typeof marker.remove === 'function') {
-                    try {
+        if (!candleSeries || !chart) {
+            console.warn('Chart not initialized for markers, attempting to initialize...');
+            await initializeChart();
+            if (!candleSeries || !chart) {
+                return; // Skip markers if chart still not available
+            }
+        }
+        
+        // Clear existing markers first
+        try {
+            candleSeries.setMarkers([]);
+        } catch (e) {
+            console.warn('Error clearing existing markers:', e);
+        }
+        
+        // Validate trades data
+        if (!trades || typeof trades !== 'object') {
+            throw new Error('Invalid trades data format');
+        }
+        
+        // Safely clear existing markers
+        // Verify activeTradeMarkers is an array and has a length property
+        if (activeTradeMarkers && typeof activeTradeMarkers.length !== 'undefined') {
+            for (let i = activeTradeMarkers.length - 1; i >= 0; i--) {
+                try {
+                    const marker = activeTradeMarkers[i];
+                    if (marker && typeof marker.remove === 'function') {
                         marker.remove();
-                    } catch (err) {
-                        console.log('Error removing active marker:', err);
                     }
+                } catch (err) {
+                    console.warn('Error removing active marker:', err);
                 }
             }
         }
         
-        if (closedTradeMarkers && typeof closedTradeMarkers.length !== 'undefined' && closedTradeMarkers.length) {
-            for (const marker of closedTradeMarkers) {
-                if (marker && typeof marker.remove === 'function') {
-                    try {
+        // Safely clear closed trade markers
+        // Verify closedTradeMarkers is an array and has a length property
+        if (closedTradeMarkers && typeof closedTradeMarkers.length !== 'undefined') {
+            for (let i = closedTradeMarkers.length - 1; i >= 0; i--) {
+                try {
+                    const marker = closedTradeMarkers[i];
+                    if (marker && typeof marker.remove === 'function') {
                         marker.remove();
-                    } catch (err) {
-                        console.log('Error removing closed marker:', err);
                     }
+                } catch (err) {
+                    console.warn('Error removing closed marker:', err);
                 }
             }
         }
@@ -1009,119 +1053,132 @@ async function updateTradeMarkers(trades) {
         activeTradeMarkers = [];
         closedTradeMarkers = [];
         
-        if (!candleSeries || !chart) {
-            console.warn('Chart not initialized, cannot add trade markers');
-            return;
-        }
-        
         // Count how many trades we found for the current symbol
         let activeTradeCount = 0;
         let closedTradeCount = 0;
         
         // Add markers for active trades
-        const activeTrades = trades.active_trades || [];
+        const activeTrades = Array.isArray(trades.active_trades) ? trades.active_trades : [];
         for (const trade of activeTrades) {
-            const symbol = trade[1];
-            
-            // Only add markers for the current chart symbol
-            if (symbol !== currentSymbol) continue;
-            
-            activeTradeCount++;
-            console.log(`Adding markers for active trade: ${trade[0]} (${symbol})`);
-            
-            // Trade details
-            const side = trade[2];           // Buy or Sell
-            const size = parseFloat(trade[3]);
-            const entryPrice = parseFloat(trade[4]);
-            const stopLoss = parseFloat(trade[9]) || null;
-            const takeProfit = parseFloat(trade[10]) || null;
-            
-            // Color based on side
-            const sideColor = side === 'Buy' ? '#4CAF50' : '#f44336';
-            
-            // Add entry point line
-            const entryLine = candleSeries.createPriceLine({
-                price: entryPrice,
-                color: sideColor,
-                lineWidth: 2,
-                lineStyle: LightweightCharts.LineStyle.Solid,
-                axisLabelVisible: true,
-                title: `${side} @ ${entryPrice.toFixed(2)}`,
-            });
-            activeTradeMarkers.push(entryLine);
-            
-            // Add stop loss line if defined
-            if (stopLoss && !isNaN(stopLoss)) {
-                const slLine = candleSeries.createPriceLine({
-                    price: stopLoss,
-                    color: '#f44336', // Red
-                    lineWidth: 1,
-                    lineStyle: LightweightCharts.LineStyle.Dashed,
-                    axisLabelVisible: true,
-                    title: 'SL',
-                });
-                activeTradeMarkers.push(slLine);
-            }
-            
-            // Add take profit line if defined
-            if (takeProfit && !isNaN(takeProfit)) {
-                const tpLine = candleSeries.createPriceLine({
-                    price: takeProfit,
-                    color: '#4CAF50', // Green
-                    lineWidth: 1,
-                    lineStyle: LightweightCharts.LineStyle.Dashed,
-                    axisLabelVisible: true,
-                    title: 'TP',
-                });
-                activeTradeMarkers.push(tpLine);
+            try {
+                if (!Array.isArray(trade) || trade.length < 5) {
+                    console.warn('Skipping invalid trade record:', trade);
+                    continue;
+                }
+                
+                const symbol = trade[1];
+                if (!symbol || symbol !== currentSymbol) continue;
+                
+                activeTradeCount++;
+                console.log(`Adding markers for active trade: ${trade[0]} (${symbol})`);
+                
+                const side = trade[2];
+                const entryPrice = parseFloat(trade[4]);
+                const stopLoss = parseFloat(trade[9]);
+                const takeProfit = parseFloat(trade[10]);
+                
+                if (isNaN(entryPrice)) {
+                    console.warn(`Invalid entry price for trade ${trade[0]}: ${trade[4]}`);
+                    continue;
+                }
+                
+                // Color based on side
+                const sideColor = side === 'Buy' ? '#4CAF50' : '#f44336';
+                
+                // Add entry point line
+                try {
+                    const entryLine = candleSeries.createPriceLine({
+                        price: entryPrice,
+                        color: sideColor,
+                        lineWidth: 2,
+                        lineStyle: LightweightCharts.LineStyle.Solid,
+                        axisLabelVisible: true,
+                        title: `${side} @ ${entryPrice.toFixed(2)}`,
+                    });
+                    activeTradeMarkers.push(entryLine);
+                    
+                    // Add stop loss line if valid
+                    if (!isNaN(stopLoss)) {
+                        const slLine = candleSeries.createPriceLine({
+                            price: stopLoss,
+                            color: '#f44336',
+                            lineWidth: 1,
+                            lineStyle: LightweightCharts.LineStyle.Dashed,
+                            axisLabelVisible: true,
+                            title: 'SL',
+                        });
+                        activeTradeMarkers.push(slLine);
+                    }
+                    
+                    // Add take profit line if valid
+                    if (!isNaN(takeProfit)) {
+                        const tpLine = candleSeries.createPriceLine({
+                            price: takeProfit,
+                            color: '#4CAF50',
+                            lineWidth: 1,
+                            lineStyle: LightweightCharts.LineStyle.Dashed,
+                            axisLabelVisible: true,
+                            title: 'TP',
+                        });
+                        activeTradeMarkers.push(tpLine);
+                    }
+                } catch (markerErr) {
+                    console.error(`Error creating marker for trade ${trade[0]}:`, markerErr);
+                }
+            } catch (tradeErr) {
+                console.error('Error processing active trade:', tradeErr);
             }
         }
         
-        // Add closed trade markers (just for context, limit to last 3 to avoid clutter)
-        const closedTrades = (trades.closed_trades || []).slice(0, 5);
+        // Add closed trade markers (limited to recent ones to avoid clutter)
+        const closedTrades = Array.isArray(trades.closed_trades) ? trades.closed_trades.slice(0, 5) : [];
         for (const trade of closedTrades) {
-            const symbol = trade[1];
-            
-            // Only add markers for the current chart symbol
-            if (symbol !== currentSymbol) continue;
-            
-            closedTradeCount++;
-            const entryPrice = parseFloat(trade[4]);
-            const exitPrice = parseFloat(trade[5]);
-            const pnl = parseFloat(trade[6]);
-            const timestamp = new Date(trade[8]);
-            
-            // Only add if trade was closed in last 48 hours
-            const now = new Date();
-            const timeDiff = now - timestamp;
-            if (timeDiff > 48 * 60 * 60 * 1000) continue;
-            
-            // Add a marker for the closed trade
-            const closedLine = candleSeries.createPriceLine({
-                price: exitPrice,
-                color: pnl >= 0 ? 'rgba(76, 175, 80, 0.5)' : 'rgba(244, 67, 54, 0.5)',
-                lineWidth: 1,
-                lineStyle: LightweightCharts.LineStyle.Dotted,
-                axisLabelVisible: true,
-                title: `Closed: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}`,
-            });
-            closedTradeMarkers.push(closedLine);
+            try {
+                if (!Array.isArray(trade) || trade.length < 6) {
+                    console.warn('Skipping invalid closed trade record:', trade);
+                    continue;
+                }
+                
+                const symbol = trade[1];
+                if (!symbol || symbol !== currentSymbol) continue;
+                
+                closedTradeCount++;
+                const entryPrice = parseFloat(trade[4]);
+                const exitPrice = parseFloat(trade[5]);
+                const pnl = parseFloat(trade[6]);
+                
+                if (isNaN(exitPrice) || isNaN(pnl)) {
+                    console.warn(`Invalid price/PnL for closed trade ${trade[0]}`);
+                    continue;
+                }
+                
+                try {
+                    const closedLine = candleSeries.createPriceLine({
+                        price: exitPrice,
+                        color: pnl >= 0 ? 'rgba(76, 175, 80, 0.5)' : 'rgba(244, 67, 54, 0.5)',
+                        lineWidth: 1,
+                        lineStyle: LightweightCharts.LineStyle.Dotted,
+                        axisLabelVisible: true,
+                        title: `Closed: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}`,
+                    });
+                    closedTradeMarkers.push(closedLine);
+                } catch (markerErr) {
+                    console.error(`Error creating closed trade marker for ${trade[0]}:`, markerErr);
+                }
+            } catch (tradeErr) {
+                console.error('Error processing closed trade:', tradeErr);
+            }
         }
         
-        // Add a "No trades" marker if there are no trades for this symbol
+        // Add "No trades" marker if no trades found for this symbol
         if (activeTradeCount === 0 && closedTradeCount === 0) {
-            // Get the current visible price range
-            const priceScale = chart.priceScale('right');
-            const priceRange = priceScale.priceRange();
-            
-            if (priceRange) {
-                // Calculate a position near the middle of the visible range
+            try {
+                const priceScale = chart.priceScale('right');
+                const priceRange = priceScale.priceRange();
                 const visibleRange = chart.timeScale().getVisibleRange();
                 
-                if (visibleRange) {
+                if (priceRange && visibleRange) {
                     const middlePrice = (priceRange.minValue() + priceRange.maxValue()) / 2;
-                    
-                    // Add an informational marker
                     const noTradesLabel = candleSeries.createPriceLine({
                         price: middlePrice,
                         color: 'rgba(100, 100, 100, 0.5)',
@@ -1131,12 +1188,15 @@ async function updateTradeMarkers(trades) {
                     });
                     activeTradeMarkers.push(noTradesLabel);
                 }
+            } catch (err) {
+                console.warn('Error creating no trades marker:', err);
             }
         }
         
         console.log(`Added ${activeTradeMarkers.length} active trade markers and ${closedTradeMarkers.length} closed trade markers for ${currentSymbol}`);
     } catch (error) {
         console.error('Error updating trade markers:', error);
+        showNotification('Error updating trade markers on chart', 'error');
     }
 }
 

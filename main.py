@@ -14,9 +14,10 @@ from pydantic import BaseModel
 # 🚨 MUST BE FIRST! Load environment variables before other imports
 load_dotenv()
 
-from strategies import TradingStrategies, RiskManagement
+from strategies_v2 import TradingStrategy
 from database import save_trade, get_active_trades, get_closed_trades, update_trade_settings
 from security import validate_keys
+from risk_manager import RiskManager
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -54,8 +55,8 @@ except Exception as e:
     exit(1)
 
 # Initialize services
-strategy = TradingStrategies(API_KEY, API_SECRET)
-risk_mgmt = RiskManagement(leverage=LEVERAGE)
+strategy = TradingStrategy(API_KEY, API_SECRET)  # Initialize with API credentials
+risk_mgmt = RiskManager()
 
 # Pydantic models for settings
 class Settings(BaseModel):
@@ -544,11 +545,13 @@ async def get_settings():
         config = load_config()
         settings = {
             "leverage": LEVERAGE,
-            "risk_per_trade": 2.0,  # Default risk per trade
+            "risk_per_trade": config.get("risk_per_trade", 2.0),
+            "auto_risk": config.get("auto_risk", {}).get("enabled", False),
             "simulation_mode": SIMULATION_MODE,
             "demo_mode": DEMO_MODE,
             "debug_mode": DEBUG_MODE,
             "demo_interval": DEMO_INTERVAL,
+            "testnet": config.get("testnet", False),
             "api_key_masked": "••••••••" if config.get("api_key") else "",
             "api_secret_masked": "••••••••" if config.get("api_secret") else ""
         }
@@ -965,4 +968,4 @@ async def restart_server():
         return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=5000)

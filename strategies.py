@@ -7,6 +7,8 @@ import math
 import json
 import logging
 from risk_manager import RiskManager
+import talib as ta
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -16,7 +18,16 @@ logger = logging.getLogger('strategies')
 def avgdev(arr, period):
     arr = np.asarray(arr, dtype=float)
     if len(arr) < period:
-        return np.nan
+        re    def should_open_position(self, symbol, candles, current_positions):
+        """Determine if we should open a new position"""
+        # Check if we already have maximum positions for this symbol
+        try:
+            symbol_positions = [p for p in current_positions if p['symbol'] == symbol]
+            if len(symbol_positions) >= self.max_positions_per_symbol:
+                return None, 0, None
+        except Exception as e:
+            print(f"Error checking positions: {e}")
+            return None, 0, None.nan
     out = np.full(len(arr), np.nan)
     for i in range(period - 1, len(arr)):
         window = arr[i - period + 1:i + 1]
@@ -40,6 +51,14 @@ class TradingStrategies:
         
         # Initialize risk manager
         self.risk_manager = RiskManager()
+        
+        self.trend_periods = {
+            'short': 20,
+            'medium': 50,
+            'long': 200
+        }
+        self.min_volume_usdt = 1000000  # Minimum 24h volume in USDT
+        self.min_trade_count = 1000     # Minimum 24h trades
         
         logger.info(f"Trading Strategies initialized in {'testnet' if testnet_mode else 'live'} mode")
         
@@ -277,25 +296,29 @@ class TradingStrategies:
         # Debug: Print indicator values
         print(f"DEBUG {symbol} Indicators: RSI={ind['rsi']:.2f}, Close={ind['close']}, BB_Lower={ind['bb_lower']:.2f}, BB_Upper={ind['bb_upper']:.2f}, MACD_Hist={ind['macd_hist']:.4f}, EMA9={ind['ema9']:.2f}, EMA21={ind['ema21']:.2f}, ATR={atr:.2f}")
         
-        # Count how many buy conditions are met
+        # Enhanced buy conditions with trend confirmation
         buy_conditions = [
             ind['close'] < ind['bb_lower'] * 1.02,    # Price near or below lower BB
             ind['rsi'] < 40,                          # RSI oversold
             ind['macd_hist'] > -0.001,                # MACD histogram near positive or positive
             ind['ema9'] > ind['ema21'] * 0.98,        # Short-term trend close to or above long-term
-            ind['volume'] > ind['volume_sma'] * 0.9,  # Good volume
-            ind['fastk'] < 30                         # StochRSI oversold
+            ind['volume'] > ind['volume_sma'] * 1.2,  # Increased volume requirement
+            ind['fastk'] < 30,                        # StochRSI oversold
+            ind['ema21'] > ind['ema50'],              # Medium-term uptrend
+            all(ind['close'] > ind['ema200'] for _ in range(3))  # Above 200 EMA for strength
         ]
         buy_score = sum(buy_conditions)
         
         # Count how many sell conditions are met
         sell_conditions = [
             ind['close'] > ind['bb_upper'] * 0.98,    # Price near or above upper BB
-            ind['rsi'] > 60,                          # RSI overbought
+            ind['rsi'] > 65,                          # Increased RSI requirement
             ind['macd_hist'] < 0.001,                 # MACD histogram near negative or negative
             ind['ema9'] < ind['ema21'] * 1.02,        # Short-term trend close to or below long-term
-            ind['volume'] > ind['volume_sma'] * 0.9,  # Good volume
-            ind['fastk'] > 70                         # StochRSI overbought
+            ind['volume'] > ind['volume_sma'] * 1.2,  # Increased volume requirement
+            ind['fastk'] > 75,                        # Increased StochRSI requirement
+            ind['ema21'] < ind['ema50'],              # Medium-term downtrend
+            ind['close'] < max(closes[-5:])           # Price below recent high
         ]
         sell_score = sum(sell_conditions)
         
@@ -303,18 +326,30 @@ class TradingStrategies:
         
         decision = "hold"
         # Make trading decision based on scores
-        if buy_score >= 4:  # Need at least 4 out of 6 conditions for buy
+        if buy_score >= 6:  # Need at least 6 out of 8 conditions for stronger confirmation
             decision = "buy"
-            # Set stop loss to 2 ATR below entry price
-            stop_loss = ind['close'] - (2 * atr)
-            # Set take profit to 3 ATR above entry price (1:1.5 risk-reward)
-            take_profit = ind['close'] + (3 * atr)
-        elif sell_score >= 4:  # Need at least 4 out of 6 conditions for sell
+            # Dynamic ATR multiplier based on volatility
+            volatility = atr / ind['close'] * 100
+            atr_multiplier = min(2.5, max(1.5, volatility))
+            
+            # Set stop loss with dynamic ATR multiplier
+            stop_loss = ind['close'] - (atr_multiplier * atr)
+            # Set take profit for 2:1 reward-risk ratio
+            take_profit = ind['close'] + (atr_multiplier * atr * 2)
+        elif sell_score >= 6:  # Need at least 6 out of 8 conditions for stronger confirmation
             decision = "sell"
-            # Set stop loss to 2 ATR above entry price
-            stop_loss = ind['close'] + (2 * atr)
-            # Set take profit to 3 ATR below entry price (1:1.5 risk-reward)
-            take_profit = ind['close'] - (3 * atr)
+            # Dynamic ATR multiplier based on volatility
+            volatility = atr / ind['close'] * 100
+            atr_multiplier = min(2.5, max(1.5, volatility))
+            
+            # Set stop loss with dynamic ATR multiplier
+            stop_loss = ind['close'] + (atr_multiplier * atr)
+            # Set take profit for 2:1 reward-risk ratio
+            take_profit = ind['close'] - (atr_multiplier * atr * 2)
+            
+            # Additional validation for reasonable stops
+            if (stop_loss - ind['close']) / ind['close'] > 0.05:  # Don't risk more than 5%
+                return {"decision": "hold", "stop_loss": None, "take_profit": None, "price": ind['close']}
         
         return {
             "decision": decision,
@@ -323,18 +358,160 @@ class TradingStrategies:
             "price": ind['close']
         }
 
+    def analyze_market_conditions(self, symbol: str) -> dict:
+        """Analyze market conditions for trading decisions"""
+        try:
+            # Get recent candles
+            candles = self.client.get_kline(
+                category="linear",
+                symbol=symbol,
+                interval="5",  # 5 minute candles
+                limit=200      # Get enough data for analysis
+            )['result']['list']
+            
+            if not candles:
+                return {'tradeable': False, 'reason': 'No data available'}
+            
+            # Calculate technical indicators
+            closes = [float(c[4]) for c in candles]
+            volumes = [float(c[5]) for c in candles]
+            
+            # Calculate EMAs
+            ema_short = self.ema(closes, self.trend_periods['short'])
+            ema_medium = self.ema(closes, self.trend_periods['medium'])
+            ema_long = self.ema(closes, self.trend_periods['long'])
+            
+            # Calculate RSI
+            rsi = self.calculate_rsi(candles)
+            
+            # Volume analysis
+            avg_volume = sum(volumes[-20:]) / 20  # 20-period volume average
+            
+            # Get market data
+            market_data = self.risk_manager.get_market_data(symbol)
+            
+            # Current price
+            current_price = float(candles[0][4])
+            
+            # Determine market conditions
+            conditions = {
+                'tradeable': True,
+                'trend': {
+                    'short': 'up' if ema_short > ema_medium else 'down',
+                    'long': 'up' if ema_medium > ema_long else 'down'
+                },
+                'momentum': {
+                    'rsi': rsi,
+                    'overbought': rsi > 70,
+                    'oversold': rsi < 30
+                },
+                'volume': {
+                    'current': float(volumes[0]),
+                    'average': avg_volume,
+                    'increasing': float(volumes[0]) > avg_volume
+                },
+                'volatility': {
+                    'current': (float(candles[0][2]) - float(candles[0][3])) / current_price * 100,  # Current candle range
+                    'average': self.calculate_avgdev(candles)
+                }
+            }
+            
+            # Trading rules
+            conditions['signals'] = {
+                'long': (
+                    conditions['trend']['short'] == 'up' and
+                    conditions['trend']['long'] == 'up' and
+                    conditions['momentum']['rsi'] < 60 and
+                    conditions['volume']['increasing']
+                ),
+                'short': (
+                    conditions['trend']['short'] == 'down' and
+                    conditions['trend']['long'] == 'down' and
+                    conditions['momentum']['rsi'] > 40 and
+                    conditions['volume']['increasing']
+                )
+            }
+            
+            return conditions
+            
+        except Exception as e:
+            logger.error(f"Error analyzing market conditions: {str(e)}")
+            return {'tradeable': False, 'reason': str(e)}
+            
+    def should_open_position(self, symbol: str, side: str) -> tuple:
+        """Determine if a new position should be opened"""
+        try:
+            conditions = self.analyze_market_conditions(symbol)
+            
+            if not conditions['tradeable']:
+                return False, conditions.get('reason', 'Market conditions unfavorable')
+                
+            # Check if we have a valid signal for the requested side
+            if side == 'Buy' and not conditions['signals']['long']:
+                return False, 'No long signal present'
+            elif side == 'Sell' and not conditions['signals']['short']:
+                return False, 'No short signal present'
+                
+            # Check momentum conditions
+            if side == 'Buy' and conditions['momentum']['overbought']:
+                return False, 'Market overbought'
+            elif side == 'Sell' and conditions['momentum']['oversold']:
+                return False, 'Market oversold'
+                
+            return True, 'Signal confirmed'
+            
+        except Exception as e:
+            logger.error(f"Error checking position entry: {str(e)}")
+            return False, str(e)
+            
+    def should_close_position(self, position: dict) -> tuple:
+        """Determine if an existing position should be closed"""
+        try:
+            conditions = self.analyze_market_conditions(position['symbol'])
+            
+            if not conditions['tradeable']:
+                return True, 'Market conditions deteriorated'
+                
+            # Close long positions on trend reversal or overbought conditions
+            if position['side'] == 'Buy':
+                if (conditions['trend']['short'] == 'down' and 
+                    conditions['momentum']['rsi'] > 70):
+                    return True, 'Trend reversed and overbought'
+                    
+            # Close short positions on trend reversal or oversold conditions
+            elif position['side'] == 'Sell':
+                if (conditions['trend']['short'] == 'up' and 
+                    conditions['momentum']['rsi'] < 30):
+                    return True, 'Trend reversed and oversold'
+                    
+            return False, 'Position maintains favorable conditions'
+            
+        except Exception as e:
+            logger.error(f"Error checking position exit: {str(e)}")
+            return True, str(e)  # Close position on error to be safe
+
 class RiskManagement:
     def __init__(self, leverage: int = 5, max_risk: float = 0.02):
         # Load config
         self.config = self._load_config()
         self.leverage = self.config.get('leverage', 5)
-        self.max_risk = float(self.config.get('risk_per_trade', 2.0)) / 100
+        
+        # Handle "auto" risk setting
+        risk_setting = self.config.get('risk_per_trade', 2.0)
+        if isinstance(risk_setting, str) and risk_setting.lower() == "auto":
+            self.auto_risk = True
+            self.max_risk = 0.02  # Default value, will be overridden by risk manager
+        else:
+            self.auto_risk = False
+            self.max_risk = float(risk_setting) / 100
+            
         self.max_positions = 5    # Maximum concurrent positions
         
         # Initialize risk manager
         self.risk_manager = RiskManager()
         
-        logger.info(f"Risk management initialized with leverage {self.leverage}x and max risk {self.max_risk*100}%")
+        risk_type = "automatic (dynamic)" if self.auto_risk else f"fixed at {self.max_risk*100}%"
+        logger.info(f"Risk management initialized with leverage {self.leverage}x and risk {risk_type}")
     
     def _load_config(self, config_path='config.json'):
         """Load configuration from file"""
@@ -360,7 +537,7 @@ class RiskManagement:
         logger.info(f"Using balance of {balance} USDT for position sizing")
         
         # Get risk metrics from the risk manager
-        if self.config.get('auto_risk', {}).get('enabled', False):
+        if self.auto_risk:
             risk_data = self.risk_manager.get_position_size(symbol, balance, entry_price)
             position_size = risk_data['position_size']
             risk_percentage = risk_data['risk_percentage'] / 100  # Convert from percentage to decimal
@@ -398,3 +575,171 @@ class RiskManagement:
         
         # Return the minimum of the calculated size and the maximum allowed size
         return min(size, max_size)
+
+    def analyze_trend(self, prices, volumes):
+        """Analyze market trend using multiple timeframes"""
+        # Convert to numpy arrays
+        close_prices = np.array([float(price['close']) for price in prices])
+        volumes = np.array([float(vol) for vol in volumes])
+        
+        # Calculate technical indicators
+        ema20 = ta.EMA(close_prices, timeperiod=20)
+        ema50 = ta.EMA(close_prices, timeperiod=50)
+        ema200 = ta.EMA(close_prices, timeperiod=200)
+        
+        # RSI for overbought/oversold
+        rsi = ta.RSI(close_prices, timeperiod=14)
+        
+        # MACD for trend momentum
+        macd, signal, hist = ta.MACD(close_prices, fastperiod=12, slowperiod=26, signalperiod=9)
+        
+        # Bollinger Bands for volatility
+        upper, middle, lower = ta.BBANDS(close_prices, timeperiod=20)
+        
+        # Volume trend
+        volume_sma = ta.SMA(volumes, timeperiod=20)
+        
+        # ATR for volatility and position sizing
+        atr = ta.ATR(np.array([float(price['high']) for price in prices]),
+                    np.array([float(price['low']) for price in prices]),
+                    close_prices, timeperiod=14)
+        
+        latest_close = close_prices[-1]
+        
+        # Trend strength indicators
+        adx = ta.ADX(np.array([float(price['high']) for price in prices]),
+                    np.array([float(price['low']) for price in prices]),
+                    close_prices, timeperiod=14)
+        
+        # Determine primary trend
+        trend = {
+            'direction': 'neutral',
+            'strength': 0,
+            'volatility': float(atr[-1]) if atr[-1] else 0
+        }
+        
+        # Strong trend conditions
+        if (ema20[-1] > ema50[-1] > ema200[-1] and 
+            close_prices[-1] > ema20[-1] and
+            adx[-1] > 25):
+            trend['direction'] = 'bullish'
+            trend['strength'] = min((adx[-1] - 25) / 25, 1)
+        elif (ema20[-1] < ema50[-1] < ema200[-1] and 
+              close_prices[-1] < ema20[-1] and
+              adx[-1] > 25):
+            trend['direction'] = 'bearish'
+            trend['strength'] = min((adx[-1] - 25) / 25, 1)
+            
+        return {
+            'trend': trend,
+            'rsi': float(rsi[-1]) if rsi[-1] else 50,
+            'macd_hist': float(hist[-1]) if hist[-1] else 0,
+            'bb_upper': float(upper[-1]) if upper[-1] else latest_close * 1.02,
+            'bb_lower': float(lower[-1]) if lower[-1] else latest_close * 0.98,
+            'volume_ratio': float(volumes[-1] / volume_sma[-1]) if volume_sma[-1] else 1,
+            'atr': float(atr[-1]) if atr[-1] else latest_close * 0.02
+        }
+
+    def should_open_position(self, symbol, prices, volumes, current_positions):
+        """Determine if we should open a new position"""
+        try:
+            # Check if we already have maximum positions for this symbol
+            symbol_positions = [p for p in current_positions if p['symbol'] == symbol]
+            if len(symbol_positions) >= self.max_positions_per_symbol:
+                return None, 0, None
+            
+            # Get market analysis
+            analysis = self.analyze_trend(prices, volumes)
+            latest_close = float(prices[-1]['close'])
+            
+            # Position sizing based on ATR
+            risk_per_trade = 0.01  # 1% risk per trade
+            atr_multiplier = 2
+            stop_loss_distance = analysis['atr'] * atr_multiplier
+            
+            # Volume validation
+            if analysis['volume_ratio'] < 1.2:  # Require above average volume
+                return None, 0, None
+                
+            # Define entry conditions
+            bullish_entry = (
+                analysis['trend']['direction'] == 'bullish' and
+                analysis['trend']['strength'] > 0.3 and
+                analysis['rsi'] < 65 and
+                analysis['rsi'] > 40 and
+                analysis['macd_hist'] > 0
+            )
+            
+            bearish_entry = (
+                analysis['trend']['direction'] == 'bearish' and
+                analysis['trend']['strength'] > 0.3 and
+                analysis['rsi'] > 35 and
+                analysis['rsi'] < 60 and
+                analysis['macd_hist'] < 0
+            )
+            
+            # Calculate position size and stop loss
+            account_size = 10000  # Example account size
+            position_size = (account_size * risk_per_trade) / stop_loss_distance
+            
+            if bullish_entry:
+                stop_loss = latest_close - stop_loss_distance
+                take_profit = latest_close + (stop_loss_distance * 2)  # 2:1 reward-risk ratio
+                return 'buy', position_size, {'stop_loss': stop_loss, 'take_profit': take_profit}
+                
+            elif bearish_entry:
+                stop_loss = latest_close + stop_loss_distance
+                take_profit = latest_close - (stop_loss_distance * 2)  # 2:1 reward-risk ratio
+                return 'sell', position_size, {'stop_loss': stop_loss, 'take_profit': take_profit}
+                
+            return None, 0, None
+            
+        except Exception as e:
+            print(f"Error in should_open_position: {e}")
+            return None, 0, None
+
+    def should_close_position(self, position, current_price, analysis=None):
+        """Determine if we should close an existing position"""
+        if not analysis:
+            return False
+
+        try:
+            # Get current market analysis
+            analysis = self.analyze_trend(candles)
+            entry_price = float(position['entry_price'])
+            position_type = position['side'].lower()
+
+            # Calculate current profit/loss percentage
+            if position_type == 'buy':
+                pnl_pct = (current_price - entry_price) / entry_price
+            else:
+                pnl_pct = (entry_price - current_price) / entry_price
+
+            # Close on major trend reversal
+            if position_type == 'buy':
+                if (current_price < analysis['ema50'] and  # Price below 50 EMA
+                    analysis['trend']['direction'] == 'bearish' and  # Confirmed downtrend
+                    analysis['rsi'] < 45):  # Weakening momentum
+                    return True
+            else:  # Sell position
+                if (current_price > analysis['ema50'] and  # Price above 50 EMA
+                    analysis['trend']['direction'] == 'bullish' and  # Confirmed uptrend
+                    analysis['rsi'] > 55):  # Strengthening momentum
+                    return True
+
+            # Trail stop loss in profit
+            if pnl_pct > 0.02:  # If in more than 2% profit
+                if position_type == 'buy':
+                    trail_stop = current_price - (analysis['atr'] * 2)
+                    if trail_stop > entry_price and current_price < trail_stop:
+                        return True
+                else:
+                    trail_stop = current_price + (analysis['atr'] * 2)
+                    if trail_stop < entry_price and current_price > trail_stop:
+                        return True
+
+            return False
+
+        except Exception as e:
+            print(f"Error in should_close_position: {e}")
+            return False

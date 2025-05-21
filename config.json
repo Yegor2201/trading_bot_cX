@@ -1,14 +1,14 @@
 {
     "api_key": "RSmKP5Qcb8IjqklHuy",
     "api_secret": "wU55YpaN2LUgqAMX6jwLR2hDHo9mQpcKzRkx",
-    "mode": "live",
+    "mode": "testnet",
     "leverage": 8,
     "risk_per_trade": "auto",
     "debug_mode": true,
     "demo_mode": false,
     "demo_interval": 120,
     "simulation_mode": false,
-    "testnet": false,
+    "testnet": true,
     "auto_risk": {
         "enabled": true,
         "min_risk": 0.5,
