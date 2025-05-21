@@ -1,5 +1,11 @@
 {
-    "api_key": "RSmKP5Qcb8IjqklHuy", 
-    "api_secret": "wU55YpaN2LUgqAMX6jwLR2hDHo9mQpcKzRkx", 
-    "mode": "paper"
+    "api_key": "RSmKP5Qcb8IjqklHuy",
+    "api_secret": "wU55YpaN2LUgqAMX6jwLR2hDHo9mQpcKzRkx",
+    "mode": "paper",
+    "leverage": 8,
+    "risk_per_trade": 2.0,
+    "debug_mode": false,
+    "demo_mode": false,
+    "demo_interval": 120,
+    "simulation_mode": true
 }

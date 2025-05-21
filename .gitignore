@@ -1,0 +1,46 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+
+# Virtual environment
+venv/
+.env/
+
+# Editor settings
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+
+# Logs and database
+*.log
+*.sqlite
+*.db
+
+# tarballs and archives
+*.tar.gz
+*.zip
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Ignore compiled shared libraries
+*.so
+
+# Ignore test outputs
+test-results/
+
+# Specific to your repo
+trade.db
+tqdm_cache/

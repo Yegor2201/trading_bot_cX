@@ -5,82 +5,186 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trading Bot Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
     <header>
         <h1>🤖 Crypto Trading Bot</h1>
+        <div class="tabs">
+            <button class="tab-button active" data-tab="dashboard">📊 Dashboard</button>
+            <button class="tab-button" data-tab="settings">⚙️ Settings</button>
+        </div>
         <div class="controls">
-            <button onclick="startBot()">▶️ Start Bot</button>
-            <button onclick="stopBot()">⏹️ Stop Bot</button>
+            <button id="start-bot" onclick="startBot()">▶️ Start Bot</button>
+            <button id="stop-bot" onclick="stopBot()">⏹️ Stop Bot</button>
             <button onclick="updateTrades()">🔄 Refresh</button>
         </div>
     </header>
 
     <div class="container">
-        <!-- Settings Panel -->
-        <div id="settings">
-            <h2>⚙️ Settings</h2>
-            <div class="setting-item">
-                <label>Leverage:</label>
-                <select id="leverage">
-                    <option value="5">5x</option>
-                    <option value="6">6x</option>
-                    <option value="7">7x</option>
-                    <option value="8" selected>8x</option>
-                </select>
-            </div>
-            <div class="setting-item">
-                <label>Risk per Trade (%):</label>
-                <input type="number" id="risk" value="2" min="0.1" max="5" step="0.5">
-            </div>
+        <!-- Sidebar with Symbol Selection -->
+        <div id="sidebar">
+            <h3>Chart Symbol</h3>
+            <select id="chart-symbol" onchange="updateChart()">
+                <option value="BTCUSDT" selected>BTCUSDT</option>
+                <option value="ETHUSDT">ETHUSDT</option>
+                <option value="AAVEUSDT">AAVEUSDT</option>
+                <option value="APEXUSDT">APEXUSDT</option>
+            </select>
         </div>
 
-        <!-- Monitor Panel -->
-        <div id="monitor">
-            <div class="balance-box">
-                <h3>USDT Balance: <span id="balance">-</span></h3>
-                <div class="metrics">
-                    <div>Win Rate: <span id="win-rate">-</span></div>
-                    <div>Profit Factor: <span id="profit-factor">-</span></div>
-                    <div>Max Drawdown: <span id="drawdown">-</span></div>
+        <!-- Main Content Container -->
+        <div id="main-content">
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content active">
+                <div class="balance-box">
+                    <h3>USDT Balance: <span id="balance">-</span></h3>
+                    <div class="metrics">
+                        <div>Win Rate: <span id="win-rate">-</span></div>
+                        <div>Profit Factor: <span id="profit-factor">-</span></div>
+                        <div>Max Drawdown: <span id="drawdown">-</span></div>
+                    </div>
+                </div>
+                
+                <!-- Profit Metrics Box -->
+                <div class="profit-metrics-box">
+                    <h3>Profit Metrics (USDT)</h3>
+                    <div class="metrics profit-grid">
+                        <div>Hourly: <span id="hourly-profit">-</span></div>
+                        <div>Daily: <span id="daily-profit">-</span></div>
+                        <div>Weekly: <span id="weekly-profit">-</span></div>
+                        <div>Monthly: <span id="monthly-profit">-</span></div>
+                    </div>
+                </div>
+                
+                <h2>📈 Price Chart</h2>
+                <div id="chart-container">
+                    <div id="price-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+
+                <h2>📊 Active Positions</h2>
+                <table id="active-trades">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Size</th>
+                            <th>Entry Price</th>
+                            <th>Current Price</th>
+                            <th>Stop Loss</th>
+                            <th>Take Profit</th>
+                            <th>P&L</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Active trades will be populated here -->
+                    </tbody>
+                </table>
+
+                <h2>📋 Trade History</h2>
+                <table id="closed-trades">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Size</th>
+                            <th>Entry Price</th>
+                            <th>Exit Price</th>
+                            <th>P&L</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Closed trades will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div id="settings" class="tab-content">
+                <h2>⚙️ Trading Bot Settings</h2>
+                
+                <div class="settings-section">
+                    <h3>Trading Parameters</h3>
+                    <div class="setting-item">
+                        <label>Leverage:</label>
+                        <select id="leverage">
+                            <option value="1">1x</option>
+                            <option value="3">3x</option>
+                            <option value="5">5x</option>
+                            <option value="6">6x</option>
+                            <option value="7">7x</option>
+                            <option value="8" selected>8x</option>
+                            <option value="10">10x</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>Risk per Trade (%):</label>
+                        <input type="number" id="risk" value="2" min="0.1" max="5" step="0.5">
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>API Connection</h3>
+                    <div class="setting-item api-key-field">
+                        <label>API Key:</label>
+                        <input type="password" id="api-key" placeholder="Enter Bybit API Key">
+                        <button class="toggle-visibility" data-target="api-key">👁️</button>
+                    </div>
+                    <div class="setting-item api-key-field">
+                        <label>API Secret:</label>
+                        <input type="password" id="api-secret" placeholder="Enter Bybit API Secret">
+                        <button class="toggle-visibility" data-target="api-secret">👁️</button>
+                    </div>
+                    <div class="setting-item">
+                        <button id="save-api-keys" class="primary-button">Save API Keys</button>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Trading Mode</h3>
+                    <div class="setting-item">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="simulation-mode" checked>
+                            <label for="simulation-mode">Simulation Mode</label>
+                        </div>
+                        <p class="setting-description">When enabled, trades will be simulated without actual execution.</p>
+                    </div>
+                    <div class="setting-item">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="demo-mode" checked>
+                            <label for="demo-mode">Demo Mode</label>
+                        </div>
+                        <p class="setting-description">When enabled, the bot will periodically generate demo trades for testing.</p>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Advanced Settings</h3>
+                    <div class="setting-item">
+                        <label>Demo Interval (seconds):</label>
+                        <input type="number" id="demo-interval" value="120" min="30" max="600" step="30">
+                    </div>
+                    <div class="setting-item">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="debug-mode" checked>
+                            <label for="debug-mode">Debug Mode</label>
+                        </div>
+                        <p class="setting-description">Enable detailed logging for debugging.</p>
+                    </div>
+                </div>
+                
+                <div class="settings-actions">
+                    <button id="save-settings" class="primary-button">Save All Settings</button>
+                    <button id="reset-settings" class="secondary-button">Reset to Defaults</button>
                 </div>
             </div>
-
-            <h2>📊 Active Positions</h2>
-            <table id="active-trades">
-                <thead>
-                    <tr>
-                        <th>Symbol</th>
-                        <th>Side</th>
-                        <th>Size</th>
-                        <th>Entry Price</th>
-                        <th>Current Price</th>
-                        <th>P&L</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Active trades will be populated here -->
-                </tbody>
-            </table>
-
-            <h2>📋 Trade History</h2>
-            <table id="closed-trades">
-                <thead>
-                    <tr>
-                        <th>Symbol</th>
-                        <th>Side</th>
-                        <th>Size</th>
-                        <th>Entry Price</th>
-                        <th>Exit Price</th>
-                        <th>P&L</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Closed trades will be populated here -->
-                </tbody>
-            </table>
         </div>
     </div>
+
+    <footer>
+        <p>Trading Bot Status: <span id="bot-status">Idle</span></p>
+    </footer>
 
     <script src="/static/app.js"></script>
 </body>

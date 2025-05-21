@@ -1,23 +1,407 @@
-#monitor {
-    margin: 20px;
-    padding: 20px;
-    background: #1a1a1a;
-    border-radius: 8px;
+body {
+    background: #f5f5f5;
+    color: #333;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    background: #ffffff;
+    color: #333;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.container {
+    display: flex;
+    flex: 1;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     margin: 20px 0;
+    background: #ffffff;
 }
 
 th, td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #eee;
+    color: #333;
 }
 
 .Buy { color: #4CAF50; }
 .Sell { color: #f44336; }
 .profit { color: #4CAF50; }
 .loss { color: #f44336; }
+
+/* Profit Metrics Box */
+.profit-metrics-box {
+    background: #ffffff;
+    color: #333;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.profit-metrics-box h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.profit-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+/* Input fields for stop loss and take profit */
+.sl-tp-input {
+    width: 80px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.update-btn {
+    background: #007bff;
+    color: #333;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 5px;
+}
+.profit-metrics-box {
+    background: #ffffff;
+    color: #333;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.profit-metrics-box h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.profit-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+/* Input fields for stop loss and take profit */
+.sl-tp-input {
+    width: 80px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.update-btn {
+    background: #007bff;
+    color: #333;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+.update-btn:hover {
+    background: #0069d9;
+}
+
+canvas, #balance, .balance-box, .metrics, .profit-metrics-box {
+    background: #ffffff !important;
+    opacity: 1 !important;
+    filter: none !important;
+    color: #333 !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+#sidebar {
+    width: 200px;
+    background: #fff;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+}
+
+#main-content {
+    flex: 1;
+    padding: 20px;
+    background: #f9f9f9;
+}
+
+/* Tab Navigation */
+.tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.tab-button {
+    background-color: #444;
+    color: #ddd;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.tab-button.active {
+    background-color: #007bff;
+    color: #333;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Settings Specific Styles */
+.settings-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+#chart-container {
+    width: 100%;
+    height: 400px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#price-chart {
+    width: 100%;
+    height: 100%;
+}
+
+.balance-box {
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.setting-item {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.setting-item label {
+    width: 150px;
+    font-weight: 500;
+    margin-right: 15px;
+}
+
+.setting-item input[type="number"],
+.setting-item input[type="text"],
+.setting-item input[type="password"],
+.setting-item select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 250px;
+    font-size: 14px;
+}
+
+.setting-description {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #666;
+    width: 100%;
+    margin-left: 165px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-switch input[type="checkbox"] {
+    height: 0;
+    width: 0;
+    visibility: hidden;
+    position: absolute;
+}
+
+.toggle-switch label {
+    cursor: pointer;
+    text-indent: 60px;
+    width: 50px;
+    height: 25px;
+    background: #ccc;
+    display: block;
+    border-radius: 25px;
+    position: relative;
+}
+
+.toggle-switch label:after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 19px;
+    height: 19px;
+    background: #fff;
+    border-radius: 20px;
+    transition: 0.3s;
+}
+
+.toggle-switch input:checked + label {
+    background: #4CAF50;
+}
+
+.toggle-switch input:checked + label:after {
+    left: calc(100% - 3px);
+    transform: translateX(-100%);
+}
+
+/* Button Styles */
+button {
+    background: #007bff;
+    color: #333;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+.primary-button {
+    background: #4CAF50;
+    padding: 10px 20px;
+    font-size: 16px;
+}
+
+.primary-button:hover {
+    background: #388E3C;
+}
+
+.secondary-button {
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+}
+
+.secondary-button:hover {
+    background: #e0e0e0;
+}
+
+.close-trade {
+    background: #dc3545;
+    color: #333;
+    padding: 4px 8px;
+    font-size: 0.9em;
+}
+
+/* API Key Field */
+.api-key-field {
+    position: relative;
+}
+
+.toggle-visibility {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.toggle-visibility:hover {
+    color: #007bff;
+}
+
+/* Settings Actions */
+.settings-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+/* Footer */
+footer {
+    background: #ffffff;
+    color: #333;
+    padding: 10px 20px;
+    text-align: center;
+}
+
+#bot-status {
+    font-weight: bold;
+    color: #ffc107;
+}
+    font-size: 0.9em;
+}
+
+.close-trade:hover {
+    background: #c82333;
+}
+
+header {
+    background: #ffffff;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+h1, h2, h3 {
+    color: #333;
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+    color: #333;
+}
+
+#balance {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
