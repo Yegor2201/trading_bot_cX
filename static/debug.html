@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Console</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { margin-top: 0; }
+        #log {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        .error { color: red; }
+        .info { color: blue; }
+        button {
+            padding: 8px 16px;
+            margin-right: 8px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>JS Debug Console</h1>
+    <div id="log"></div>
+    
+    <button onclick="testChartInit()">Test Chart Initialization</button>
+    <button onclick="testBalanceFetch()">Test Balance Fetch</button>
+    <button onclick="testTradesFetch()">Test Trades Fetch</button>
+    <button onclick="testChartDataFetch()">Test Chart Data</button>
+    
+    <script>
+        // Override console methods to display in our debug log
+        const oldConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn,
+            info: console.info
+        };
+        
+        const logElement = document.getElementById('log');
+        
+        console.log = function(...args) {
+            oldConsole.log(...args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            logElement.innerHTML += `<div>${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        };
+        
+        console.error = function(...args) {
+            oldConsole.error(...args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            logElement.innerHTML += `<div class="error">ERROR: ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        };
+        
+        console.info = function(...args) {
+            oldConsole.info(...args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            logElement.innerHTML += `<div class="info">INFO: ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        };
+        
+        // Test functions
+        async function testBalanceFetch() {
+            try {
+                console.log('Fetching balance...');
+                const response = await fetch('/balance');
+                if (!response.ok) throw new Error('Failed to fetch balance');
+                
+                const data = await response.json();
+                console.log('Balance response:', data);
+            } catch (error) {
+                console.error('Balance fetch error:', error);
+            }
+        }
+        
+        async function testTradesFetch() {
+            try {
+                console.log('Fetching trades...');
+                const response = await fetch('/trades');
+                if (!response.ok) throw new Error('Failed to fetch trades');
+                
+                const data = await response.json();
+                console.log('Trades response:', data);
+            } catch (error) {
+                console.error('Trades fetch error:', error);
+            }
+        }
+        
+        async function testChartDataFetch() {
+            try {
+                console.log('Fetching chart data...');
+                const response = await fetch('/chart_data?symbol=BTCUSDT&interval=1h&limit=24');
+                if (!response.ok) throw new Error('Failed to fetch chart data');
+                
+                const data = await response.json();
+                console.log('Chart data response:', data);
+            } catch (error) {
+                console.error('Chart data fetch error:', error);
+            }
+        }
+        
+        function testChartInit() {
+            try {
+                console.log('Checking if LightweightCharts is available...');
+                if (typeof LightweightCharts === 'undefined') {
+                    console.error('LightweightCharts is not defined!');
+                    // Try to load it
+                    const script = document.createElement('script');
+                    script.src = 'https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js';
+                    script.onload = () => {
+                        console.log('LightweightCharts loaded successfully!');
+                        initTestChart();
+                    };
+                    script.onerror = (e) => {
+                        console.error('Failed to load LightweightCharts:', e);
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    console.log('LightweightCharts is available');
+                    initTestChart();
+                }
+            } catch (error) {
+                console.error('Chart init error:', error);
+            }
+        }
+        
+        function initTestChart() {
+            try {
+                console.log('Creating test chart container');
+                // Create a temporary chart container
+                const chartContainer = document.createElement('div');
+                chartContainer.id = 'test-chart';
+                chartContainer.style.width = '400px';
+                chartContainer.style.height = '300px';
+                document.body.appendChild(chartContainer);
+                
+                console.log('Initializing test chart');
+                const chart = LightweightCharts.createChart(chartContainer, {
+                    width: 400,
+                    height: 300
+                });
+                
+                const candleSeries = chart.addCandlestickSeries();
+                
+                // Add some test data
+                const testData = [
+                    { time: '2022-01-01', open: 100, high: 110, low: 95, close: 105 },
+                    { time: '2022-01-02', open: 105, high: 115, low: 100, close: 110 },
+                    { time: '2022-01-03', open: 110, high: 120, low: 105, close: 115 },
+                ];
+                
+                candleSeries.setData(testData);
+                console.log('Test chart created successfully!');
+                
+            } catch (error) {
+                console.error('Test chart creation error:', error);
+            }
+        }
+        
+        // Log startup
+        console.info('Debug console initialized');
+    </script>
+</body>
+</html>

@@ -131,7 +131,7 @@ def update_trade_settings(trade_id: str, stop_loss: float = None, take_profit: f
         return False
 
 def get_profit_metrics() -> dict:
-    """Calculate profit metrics (hourly, daily, weekly, monthly) and trading stats"""
+    """Calculate profit metrics (hourly, daily, weekly, monthly)"""
     try:
         conn = sqlite3.connect('trades.db')
         conn.row_factory = sqlite3.Row  # Allow column access by name
@@ -174,73 +174,13 @@ def get_profit_metrics() -> dict:
         """, (month_ago,))
         monthly_profit = c.fetchone()['profit'] or 0
         
-        # Calculate win rate
-        c.execute("""
-            SELECT 
-                COUNT(CASE WHEN pnl > 0 THEN 1 END) as wins,
-                COUNT(CASE WHEN pnl < 0 THEN 1 END) as losses,
-                COUNT(*) as total
-            FROM trades
-            WHERE status = 'closed'
-        """)
-        stats = c.fetchone()
-        wins = stats['wins'] or 0
-        losses = stats['losses'] or 0
-        total_trades = stats['total'] or 0
-        
-        win_rate = (wins / total_trades * 100) if total_trades > 0 else 0
-        
-        # Calculate profit factor
-        c.execute("""
-            SELECT 
-                SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END) as gross_profit,
-                SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END) as gross_loss
-            FROM trades
-            WHERE status = 'closed'
-        """)
-        pnl_stats = c.fetchone()
-        gross_profit = pnl_stats['gross_profit'] or 0
-        gross_loss = pnl_stats['gross_loss'] or 0
-        
-        profit_factor = gross_profit / gross_loss if gross_loss > 0 else (1 if gross_profit > 0 else 0)
-        
-        # Calculate max drawdown
-        c.execute("""
-            SELECT pnl FROM trades
-            WHERE status = 'closed'
-            ORDER BY timestamp
-        """)
-        
-        trades = c.fetchall()
-        
-        # Calculate running balance and max drawdown
-        balance = 10000  # Starting balance
-        peak_balance = balance
-        max_drawdown = 0
-        
-        for trade in trades:
-            pnl = trade['pnl'] or 0
-            balance += pnl
-            
-            if balance > peak_balance:
-                peak_balance = balance
-            
-            drawdown = (peak_balance - balance) / peak_balance * 100 if peak_balance > 0 else 0
-            max_drawdown = max(max_drawdown, drawdown)
-        
         conn.close()
         
         return {
             "hourly_profit": round(hourly_profit, 2),
             "daily_profit": round(daily_profit, 2),
             "weekly_profit": round(weekly_profit, 2),
-            "monthly_profit": round(monthly_profit, 2),
-            "win_rate": round(win_rate, 2),
-            "profit_factor": round(profit_factor, 2),
-            "max_drawdown": round(max_drawdown, 2),
-            "total_trades": total_trades,
-            "wins": wins,
-            "losses": losses
+            "monthly_profit": round(monthly_profit, 2)
         }
     except Exception as e:
         print(f"Error calculating profit metrics: {e}")

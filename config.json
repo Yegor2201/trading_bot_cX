@@ -1,11 +1,20 @@
 {
     "api_key": "RSmKP5Qcb8IjqklHuy",
     "api_secret": "wU55YpaN2LUgqAMX6jwLR2hDHo9mQpcKzRkx",
-    "mode": "paper",
+    "mode": "live",
     "leverage": 8,
-    "risk_per_trade": 2.0,
-    "debug_mode": false,
+    "risk_per_trade": "auto",
+    "debug_mode": true,
     "demo_mode": false,
     "demo_interval": 120,
-    "simulation_mode": true
+    "simulation_mode": false,
+    "testnet": false,
+    "auto_risk": {
+        "enabled": true,
+        "min_risk": 0.5,
+        "max_risk": 5.0,
+        "volume_weight": 0.3,
+        "volatility_weight": 0.4,
+        "market_cap_weight": 0.3
+    }
 }

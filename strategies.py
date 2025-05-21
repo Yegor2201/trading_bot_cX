@@ -4,6 +4,13 @@ from pybit.unified_trading import HTTP
 from database import save_trade
 from typing import List
 import math
+import json
+import logging
+from risk_manager import RiskManager
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('strategies')
 
 # --- Pure Python implementation for Average Deviation (AVGDEV) ---
 def avgdev(arr, period):
@@ -19,19 +26,42 @@ def avgdev(arr, period):
 
 class TradingStrategies:
     def __init__(self, api_key: str, api_secret: str):
+        # Load configuration
+        self.config = self._load_config()
+        testnet_mode = self.config.get('testnet', False)
+        
+        # Initialize API client
         self.client = HTTP(
-            testnet=True,
+            testnet=testnet_mode,
             api_key=api_key,
-            api_secret=api_secret
+            api_secret=api_secret,
+            recv_window=60000  # Increasing recv_window to handle timestamp synchronization issues
         )
+        
+        # Initialize risk manager
+        self.risk_manager = RiskManager()
+        
+        logger.info(f"Trading Strategies initialized in {'testnet' if testnet_mode else 'live'} mode")
+        
+    def _load_config(self, config_path='config.json'):
+        """Load configuration from file"""
+        try:
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading config: {str(e)}")
+            return {'testnet': True, 'risk_per_trade': 2.0}
         
     def update_credentials(self, api_key: str, api_secret: str):
         """Update API credentials for the client"""
+        testnet_mode = self.config.get('testnet', False)
         self.client = HTTP(
-            testnet=True,
+            testnet=testnet_mode,
             api_key=api_key,
-            api_secret=api_secret
+            api_secret=api_secret,
+            recv_window=60000  # Increasing recv_window to handle timestamp synchronization issues
         )
+        logger.info(f"Credentials updated, using {'testnet' if testnet_mode else 'live'} mode")
 
     def get_top_symbols(self, top_n: int = 1) -> List[str]:
         """Get top N symbols by 24h volume (excluding BTC/USDT)"""
@@ -295,39 +325,76 @@ class TradingStrategies:
 
 class RiskManagement:
     def __init__(self, leverage: int = 5, max_risk: float = 0.02):
-        self.leverage = min(max(leverage, 5), 8)  # 5x-8x range
-        self.max_risk = max_risk  # 2% risk per trade (conservative)
+        # Load config
+        self.config = self._load_config()
+        self.leverage = self.config.get('leverage', 5)
+        self.max_risk = float(self.config.get('risk_per_trade', 2.0)) / 100
         self.max_positions = 5    # Maximum concurrent positions
-
+        
+        # Initialize risk manager
+        self.risk_manager = RiskManager()
+        
+        logger.info(f"Risk management initialized with leverage {self.leverage}x and max risk {self.max_risk*100}%")
+    
+    def _load_config(self, config_path='config.json'):
+        """Load configuration from file"""
+        try:
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading config: {str(e)}")
+            return {'leverage': 5, 'risk_per_trade': 2.0}
+        
     def set_leverage(self, leverage: int):
         """Update leverage setting"""
         self.leverage = min(max(leverage, 1), 10)  # Range 1x-10x
         
-    def calculate_size(self, balance: float, entry_price: float, stop_loss: float = None) -> float:
-        """Calculate position size with proper risk management"""
-        # If we have a stop loss, use it for precise position sizing
-        if stop_loss and stop_loss > 0:
-            # Calculate risk per coin
-            risk_per_coin = abs(entry_price - stop_loss)
+    def calculate_size(self, symbol: str, balance: float, entry_price: float, stop_loss: float = None) -> float:
+        """Calculate position size with dynamic risk management"""
+        # Ensure balance is valid and positive
+        if not balance or balance <= 0:
+            logger.warning(f"Invalid balance {balance}, using default 1000 USDT")
+            balance = 1000.0
             
-            # If risk per coin is too small (< 0.1% of price), use default 1%
-            if risk_per_coin < (entry_price * 0.001):
-                risk_per_coin = entry_price * 0.01  # 1% of price as default
-                
-            # Calculate position size based on dollar risk
-            dollar_risk = balance * self.max_risk
-            position_size = dollar_risk / risk_per_coin
-            
-            # Apply leverage effect
-            position_size = position_size * self.leverage
+        # Log actual balance for debugging
+        logger.info(f"Using balance of {balance} USDT for position sizing")
+        
+        # Get risk metrics from the risk manager
+        if self.config.get('auto_risk', {}).get('enabled', False):
+            risk_data = self.risk_manager.get_position_size(symbol, balance, entry_price)
+            position_size = risk_data['position_size']
+            risk_percentage = risk_data['risk_percentage'] / 100  # Convert from percentage to decimal
+            logger.info(f"Auto risk for {symbol}: {risk_percentage*100:.2f}%, size: {position_size:.4f}")
         else:
-            # Traditional percentage-based sizing if no stop loss
-            risk_capital = balance * self.max_risk
-            position_size = (risk_capital * self.leverage) / entry_price
+            # Use traditional position sizing if auto risk is disabled
+            risk_percentage = self.max_risk
+            
+            # If we have a stop loss, use it for precise position sizing
+            if stop_loss and stop_loss > 0:
+                # Calculate risk per coin
+                risk_per_coin = abs(entry_price - stop_loss)
+                
+                # If risk per coin is too small (< 0.1% of price), use default 1%
+                if risk_per_coin < (entry_price * 0.001):
+                    risk_per_coin = entry_price * 0.01  # 1% of price as default
+                    
+                # Calculate position size based on dollar risk
+                dollar_risk = balance * risk_percentage
+                position_size = dollar_risk / risk_per_coin
+                
+                # Apply leverage effect
+                position_size = position_size * self.leverage
+            else:
+                # Traditional percentage-based sizing if no stop loss
+                risk_capital = balance * risk_percentage
+                position_size = (risk_capital * self.leverage) / entry_price
         
-        # Round to 3 decimal places and ensure minimum size
-        size = max(round(position_size, 3), 0.001)
+        # Make position size larger to see more impact in account (minimum 0.01 BTC worth)
+        minimum_size = 0.01 * entry_price
+        size = max(round(position_size, 3), 0.01)
         
-        # Cap the maximum position size (10% of balance)
-        max_size = (balance * 0.1) / entry_price
+        # Cap the maximum position size (15% of balance with leverage)
+        max_size = (balance * 0.15 * self.leverage) / entry_price
+        
+        # Return the minimum of the calculated size and the maximum allowed size
         return min(size, max_size)

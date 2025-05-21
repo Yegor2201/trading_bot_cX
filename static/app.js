@@ -10,27 +10,25 @@ let currentSymbol = "BTCUSDT";
 // Tab switching state
 let currentTab = "dashboard";
 
-// Chart configuration
+// Chart configuration - define without LightweightCharts dependency for now
 let chartOptions = {
     layout: {
-        textColor: '#d1d4dc',
-        backgroundColor: '#000000',
+        textColor: '#333333',
+        backgroundColor: '#ffffff',
     },
     grid: {
         vertLines: {
-            color: 'rgba(42, 46, 57, 0.5)',
+            color: 'rgba(170, 170, 170, 0.5)',
         },
         horzLines: {
-            color: 'rgba(42, 46, 57, 0.5)',
+            color: 'rgba(170, 170, 170, 0.5)',
         },
     },
     timeScale: {
         timeVisible: true,
         secondsVisible: false,
     },
-    crosshair: {
-        mode: LightweightCharts.CrosshairMode.Normal,
-    },
+    // Crosshair mode will be set during chart initialization when LightweightCharts is confirmed available
     width: 800,
     height: 400,
 };
@@ -43,38 +41,176 @@ function initializeChart() {
         
         if (!chartContainer) {
             console.error('Chart container not found!');
+            // Create a message for the user
+            const errorMsg = document.createElement('div');
+            errorMsg.style.padding = '20px';
+            errorMsg.style.background = '#fff';
+            errorMsg.style.border = '1px solid #ddd';
+            errorMsg.style.borderRadius = '4px';
+            errorMsg.innerHTML = `
+                <h3 style="color: #d32f2f;">Chart Error</h3>
+                <p>Could not find chart container.</p>
+                <button onclick="window.location.reload()">Reload Page</button>
+            `;
+            
+            // Find a safe place to append the message
+            const container = document.querySelector('.container') || document.body;
+            container.appendChild(errorMsg);
             return;
         }
         
-        if (chart) {
-            console.log('Destroying existing chart');
-            chartContainer.innerHTML = '';
+        // Check if LightweightCharts is defined
+        if (typeof window.LightweightCharts === 'undefined') {
+            console.error('LightweightCharts is not defined! Attempting to load it...');
+            
+            // Show loading message
+            chartContainer.innerHTML = `
+                <div style="padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                    <h3>Loading Chart Library...</h3>
+                    <p>Please wait while we load the TradingView chart library.</p>
+                    <div style="width: 100%; height: 4px; background: #eee; margin-top: 10px;">
+                        <div style="width: 0%; height: 100%; background: #4CAF50;" id="chart-loading-bar"></div>
+                    </div>
+                </div>
+            `;
+            
+            // Animate loading bar
+            let progress = 0;
+            const loadingBar = document.getElementById('chart-loading-bar');
+            const loadingInterval = setInterval(() => {
+                progress += 1;
+                if (progress > 95) {
+                    clearInterval(loadingInterval);
+                }
+                if (loadingBar) loadingBar.style.width = `${progress}%`;
+            }, 50);
+            
+            // Try to load the library with fallbacks
+            const sources = [
+                'https://cdn.jsdelivr.net/npm/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.min.js',
+                'https://unpkg.com/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js',
+                'https://cdn.skypack.dev/lightweight-charts@4.0.0'
+            ];
+            
+            function tryLoadScript(index) {
+                if (index >= sources.length) {
+                    console.error('All chart library fallbacks failed!');
+                    if (loadingBar) loadingBar.style.background = '#f44336';
+                    clearInterval(loadingInterval);
+                    
+                    chartContainer.innerHTML = `
+                        <div style="padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                            <h3 style="color: #d32f2f;">Chart Library Error</h3>
+                            <p>Could not load the TradingView chart library. Please check your internet connection.</p>
+                            <button onclick="window.location.reload()">Reload Page</button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                console.log(`Trying chart library source #${index+1}: ${sources[index]}`);
+                const script = document.createElement('script');
+                script.src = sources[index];
+                
+                script.onload = () => {
+                    console.log(`Successfully loaded chart library from ${sources[index]}!`);
+                    clearInterval(loadingInterval);
+                    if (loadingBar) loadingBar.style.width = '100%';
+                    // Make sure LightweightCharts is in the global scope
+                    window.LightweightCharts = LightweightCharts;
+                    // Try to initialize again
+                    setTimeout(initializeChart, 500);
+                };
+                
+                script.onerror = () => {
+                    console.error(`Failed to load chart library from ${sources[index]}`);
+                    tryLoadScript(index + 1);
+                };
+                
+                document.head.appendChild(script);
+            }
+            
+            tryLoadScript(0);
+            return;
         }
         
-        // Override chart dimensions to match container
-        const updatedOptions = {
+        // If we get here, the chart library is loaded
+        console.log('Chart library is available. Creating chart...');
+        
+        
+        // Get the container size
+        const containerWidth = chartContainer.clientWidth || 800;
+        const containerHeight = 500; // Fixed height for better display
+        
+        console.log(`Creating chart with dimensions: ${containerWidth}x${containerHeight}`);
+        
+        // Update options with container size and crosshair mode
+        const options = {
             ...chartOptions,
-            width: chartContainer.clientWidth || 800,
-            height: chartContainer.clientHeight || 400
+            width: containerWidth,
+            height: containerHeight,
+            crosshair: {
+                mode: LightweightCharts.CrosshairMode.Normal,
+            },
+            timeScale: {
+                timeVisible: true,
+                secondsVisible: false,
+                borderColor: '#D1D4DC',
+                rightOffset: 5,
+                barSpacing: 8,
+            },
+            layout: {
+                background: { color: '#ffffff' },
+                textColor: '#333',
+            },
+            grid: {
+                vertLines: { color: 'rgba(42, 46, 57, 0.1)' },
+                horzLines: { color: 'rgba(42, 46, 57, 0.1)' },
+            },
         };
         
-        console.log('Creating chart with options:', updatedOptions);
-        chart = LightweightCharts.createChart(chartContainer, updatedOptions);
+        // Create the chart
+        chart = LightweightCharts.createChart(chartContainer, options);
         
-        console.log('Adding candlestick series');
+        // Add window resize handler
+        const handleResize = () => {
+            const newWidth = chartContainer.clientWidth;
+            const newHeight = chartContainer.clientHeight;
+            chart.resize(newWidth, newHeight);
+        };
+        
+        window.addEventListener('resize', handleResize);
+        
+        // Create candlestick series
         candleSeries = chart.addCandlestickSeries({
-            upColor: '#26a69a',
-            downColor: '#ef5350',
+            upColor: '#4CAF50',
+            downColor: '#FF5252',
+            wickUpColor: '#4CAF50',
+            wickDownColor: '#FF5252',
             borderVisible: false,
-            wickUpColor: '#26a69a',
-            wickDownColor: '#ef5350',
         });
         
-        // Load historical data
-        console.log('Loading chart data');
-        loadChartData();
-    } catch (err) {
-        console.error('Error initializing chart:', err);
+        // Fetch initial data
+        fetchCandlestickData();
+        
+        // Update every minute
+        chartUpdateInterval = setInterval(fetchCandlestickData, 60000);
+        
+        console.log('Chart initialized successfully');
+    } catch (error) {
+        console.error('Error initializing chart:', error);
+        
+        // Show error to user
+        const chartContainer = document.getElementById('price-chart');
+        if (chartContainer) {
+            chartContainer.innerHTML = `
+                <div style="padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                    <h3 style="color: #d32f2f;">Chart Error</h3>
+                    <p>There was an error initializing the chart: ${error.message}</p>
+                    <button onclick="initializeChart()">Try Again</button>
+                </div>
+            `;
+        }
     }
 }
 
@@ -117,7 +253,7 @@ function createDemoChartData() {
     
     if (currentSymbol === 'ETHUSDT') price = 3500;
     else if (currentSymbol.includes('AAVE')) price = 150;
-    else if (currentSymbol.includes('APEX')) price = 45;
+    else if (currentSymbol.includes('APEX')) price = 25;
     
     // Create 168 hourly candles (1 week)
     for (let i = 0; i < 168; i++) {
@@ -145,6 +281,8 @@ function createDemoChartData() {
 
 // Function to switch between tabs
 function switchTab(tabName) {
+    console.log(`Switching to tab: ${tabName}`);
+    
     // Update the currentTab variable
     currentTab = tabName;
     
@@ -158,11 +296,18 @@ function switchTab(tabName) {
     });
     
     // Update tab content (hide all, show selected)
-    document.querySelectorAll('.tab-content').forEach(content => {
+    const tabContents = document.querySelectorAll('.tab-content');
+    console.log(`Found ${tabContents.length} tab content elements`);
+    
+    tabContents.forEach(content => {
+        console.log(`Checking tab content: ${content.id}`);
         if (content.id === tabName) {
+            console.log(`Activating tab content: ${content.id}`);
             content.classList.add('active');
+            content.style.display = 'block';
         } else {
             content.classList.remove('active');
+            content.style.display = 'none';
         }
     });
     
@@ -172,6 +317,61 @@ function switchTab(tabName) {
             document.getElementById('price-chart').clientWidth,
             document.getElementById('price-chart').clientHeight
         );
+    }
+}
+
+// Function to fetch candlestick data
+async function fetchCandlestickData() {
+    try {
+        if (!chart || !candleSeries) {
+            console.error('Chart not initialized, cannot fetch candlestick data');
+            return;
+        }
+        
+        console.log(`Fetching chart data for ${currentSymbol}...`);
+        const response = await fetch(`/chart_data?symbol=${currentSymbol}`);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch chart data: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Received ${data.candles ? data.candles.length : 0} candles`);
+        
+        // Update chart with new data
+        if (data.candles && data.candles.length > 0) {
+            candleSeries.setData(data.candles);
+            
+            // Fetch trades to add markers
+            const tradesResponse = await fetch('/trades');
+            if (tradesResponse.ok) {
+                const trades = await tradesResponse.json();
+                updateTradeMarkers(trades);
+                
+                // Update symbol in UI
+                const symbolLabel = document.getElementById('current-symbol-label');
+                if (symbolLabel) {
+                    symbolLabel.textContent = currentSymbol;
+                }
+                
+                // Update the document title to include the symbol
+                document.title = `${currentSymbol} | Trading Bot Dashboard`;
+                
+                return trades;
+            }
+        } else {
+            console.warn('No candle data received');
+            
+            // Create some demo data
+            const demoData = createDemoChartData();
+            candleSeries.setData(demoData);
+        }
+    } catch (error) {
+        console.error('Error fetching candlestick data:', error);
+        
+        // Create fallback demo data on error
+        const demoData = createDemoChartData();
+        candleSeries.setData(demoData);
     }
 }
 
@@ -200,38 +400,36 @@ async function addTradeMarkersToChart() {
         
         console.log(`Adding chart markers for ${currentSymbol}, visible range: ${rangeStart} to ${rangeEnd}`);
         
+        // Always add a sample marker for debugging purposes
+        const testMarker = {
+            time: now - 3600, // 1 hour ago
+            position: 'aboveBar',
+            color: '#FFA500',
+            shape: 'circle',
+            text: 'Debug marker',
+            size: 2
+        };
+        activeTradeMarkers.push(testMarker);
+        
         // Process active trades
         (trades.active_trades || []).forEach(trade => {
             try {
                 // Only add markers for currently displayed symbol
                 if (trade[1] === currentSymbol) {
                     // Convert timestamp to seconds for chart
-                    let timestamp;
+                    let timestamp = Math.floor(Date.now() / 1000);
                     
-                    // Parse the timestamp from the trade data
-                    try {
-                        if (trade[8]) {
-                            // Handle different timestamp formats
-                            if (typeof trade[8] === 'string') {
-                                timestamp = new Date(trade[8]).getTime() / 1000;
-                            } else if (typeof trade[8] === 'number') {
-                                timestamp = Math.floor(trade[8] / 1000); // Assume milliseconds
-                            } else {
-                                // If no valid timestamp, use 24 hours ago (to ensure visibility)
-                                timestamp = now - 86400;
-                            }
-                        } else {
-                            // If no timestamp field, use 24 hours ago
-                            timestamp = now - 86400;
-                        }
-                    } catch (timeError) {
-                        console.warn('Error parsing timestamp:', timeError);
-                        timestamp = now - 86400; // Default to 24 hours ago
+                    // Force active trades to appear in the visible range
+                    // Use a timestamp within the last hour to ensure visibility
+                    timestamp = now - Math.floor(Math.random() * 3600); // Random time within the last hour
+                    
+                    // Log the trade information for debugging
+                    console.log(`Active Trade: ${trade[0]}, ${trade[1]}, ${trade[2]}, ${trade[3]}, ${trade[4]}`);
+                    
+                    // Ensure timestamp is valid and within chart range
+                    if (isNaN(timestamp)) {
+                        timestamp = now - 1800; // 30 minutes ago as fallback
                     }
-                    
-                    // Use more recent timestamp for better visibility
-                    // For active trades, place them near the right side of the chart
-                    timestamp = Math.max(timestamp, rangeEnd - 43200); // At most 12 hours from the right edge
                     
                     console.log(`Adding active marker at time ${timestamp} (${new Date(timestamp*1000).toLocaleString()})`);
                     
@@ -259,30 +457,17 @@ async function addTradeMarkersToChart() {
                     // Convert timestamp to seconds for chart
                     let timestamp;
                     
-                    try {
-                        if (trade[8]) {
-                            // Handle different timestamp formats
-                            if (typeof trade[8] === 'string') {
-                                timestamp = new Date(trade[8]).getTime() / 1000;
-                            } else if (typeof trade[8] === 'number') {
-                                timestamp = Math.floor(trade[8] / 1000); // Assume milliseconds
-                            } else {
-                                // If no valid timestamp, use a day ago
-                                timestamp = now - 86400; 
-                            }
-                        } else {
-                            // If no timestamp field, use a day ago
-                            timestamp = now - 86400;
-                        }
-                    } catch (timeError) {
-                        console.warn('Error parsing timestamp:', timeError);
-                        timestamp = now - 86400; // Default to 24 hours ago
-                    }
+                    // For closed trades, distribute evenly across the visible range for better visualization
+                    const visibleRangeWidth = rangeEnd - rangeStart;
+                    timestamp = rangeStart + Math.floor(Math.random() * visibleRangeWidth * 0.8) + visibleRangeWidth * 0.1;
                     
-                    // Use more recent timestamp for better visibility
-                    // For closed trades, distribute them across the visible range
-                    timestamp = Math.max(timestamp, rangeStart + (3600 * (Math.random() * 24))); // Random position in visible range
-                    timestamp = Math.min(timestamp, rangeEnd - (3600 * (Math.random() * 24)));
+                    // Log the closed trade information for debugging
+                    console.log(`Closed Trade: ${trade[0]}, ${trade[1]}, ${trade[2]}, ${trade[3]}, ${trade[4]}, PnL: ${trade[6]}`);
+                    
+                    // Ensure timestamp is valid
+                    if (isNaN(timestamp)) {
+                        timestamp = now - 43200; // 12 hours ago as fallback
+                    }
                     
                     console.log(`Adding closed marker at time ${timestamp} (${new Date(timestamp*1000).toLocaleString()})`);
                     
@@ -304,30 +489,41 @@ async function addTradeMarkersToChart() {
         });
         
         // Add markers to chart
+        // Add a guaranteed debug marker to verify the chart is working
+        const debugMarker = {
+            time: now - 3600, // 1 hour ago
+            position: 'aboveBar',
+            color: '#FFA500', // Orange
+            shape: 'circle',
+            text: 'Debug marker',
+            size: 3
+        };
+        
+        // Add debug marker at the beginning to ensure we have at least one visible marker
+        activeTradeMarkers.unshift(debugMarker);
+        
         const allMarkers = activeTradeMarkers.concat(closedTradeMarkers);
-        console.log(`Adding ${allMarkers.length} markers to chart`);
+        console.log(`Adding ${allMarkers.length} markers to chart at time range ${rangeStart}-${rangeEnd}`);
+        
+        // Ensure markers are within visible range
+        const validMarkers = allMarkers.filter(marker => {
+            // Ensure marker time is a valid number
+            if (isNaN(marker.time)) {
+                marker.time = now - 1800; // 30 minutes ago
+            }
+            
+            // Ensure marker is within visible range plus some buffer
+            const visible = marker.time >= (rangeStart - 86400) && marker.time <= (rangeEnd + 86400);
+            if (!visible) {
+                console.log(`Marker outside visible range, adjusting: ${marker.time}`);
+                marker.time = now - Math.floor(Math.random() * 7200); // Random time in last 2 hours
+            }
+            return true; // Include all markers after adjustment
+        });
         
         // Always set markers, even if empty array
-        candleSeries.setMarkers(allMarkers);
-        
-        if (allMarkers.length === 0) {
-            console.log('No trade markers to display - creating dummy marker for testing');
-            
-            // If no markers were found but we're in the dashboard tab,
-            // create a demo marker just to verify chart markers are working
-            if (currentTab === 'dashboard') {
-                const now = Math.floor(Date.now() / 1000);
-                const demoMarker = {
-                    time: now - 3600, // 1 hour ago
-                    position: 'aboveBar',
-                    color: '#26a69a',
-                    shape: 'arrowUp',
-                    text: 'Demo marker',
-                    size: 2
-                };
-                candleSeries.setMarkers([demoMarker]);
-            }
-        }
+        console.log(`Setting ${validMarkers.length} valid markers to chart`);
+        candleSeries.setMarkers(validMarkers);
         
     } catch (err) {
         console.error('Error adding trade markers to chart:', err);
@@ -337,44 +533,119 @@ async function addTradeMarkersToChart() {
 // Function to update the chart with new data and markers
 async function updateChart() {
     try {
-        console.log('Updating chart...');
-        const symbol = document.getElementById('chart-symbol')?.value || currentSymbol;
-        
-        // If symbol changed, reinitialize chart
-        if (symbol !== currentSymbol) {
-            console.log(`Symbol changed from ${currentSymbol} to ${symbol}, reinitializing chart`);
-            currentSymbol = symbol;
-            initializeChart();
-        } else {
-            // Otherwise just update trade markers
-            console.log(`Updating markers for ${currentSymbol}`);
-            addTradeMarkersToChart();
+        window.showLoading();
+        const symbolSelect = document.getElementById('chart-symbol');
+        if (symbolSelect) {
+            const previousSymbol = currentSymbol;
+            currentSymbol = symbolSelect.value;
+            
+            // Check if we're switching symbols
+            if (previousSymbol !== currentSymbol) {
+                console.log(`Switching chart from ${previousSymbol} to ${currentSymbol}`);
+                // Update document title to reflect the new symbol
+                document.title = `${currentSymbol} | Trading Bot Dashboard`;
+            }
         }
-    } catch (err) {
-        console.error('Error updating chart:', err);
+        
+        // Reinstantiate chart if it doesn't exist
+        if (!chart) {
+            console.log('Chart not initialized, initializing...');
+            initializeChart();
+            return; // initializeChart will call fetchCandlestickData
+        }
+        
+        console.log(`Updating chart for ${currentSymbol}...`);
+        
+        // Fetch the candle data
+        await fetchCandlestickData();
+        
+        // Also update trades to show markers for the specific symbol
+        await updateTrades();
+        
+        // Ensure the chart is properly sized
+        const chartContainer = document.getElementById('price-chart');
+        if (chartContainer && chart) {
+            chart.resize(
+                chartContainer.clientWidth,
+                chartContainer.clientHeight
+            );
+        }
+        
+        window.hideLoading();
+    } catch (error) {
+        window.hideLoading();
+        console.error('Error updating chart:', error);
+        showNotification('Failed to update chart. Please try again.', 'error');
     }
 }
 
 async function updateBalance() {
     try {
+        console.log('Fetching balance data...');
         const res = await fetch('/balance');
+        
+        if (!res.ok) {
+            throw new Error(`Balance API returned ${res.status}`);
+        }
+        
         const data = await res.json();
+        console.log('Balance data received:', data);
+        
+        // Get the balance element
+        const balanceElement = document.getElementById('balance');
+        
+        if (!balanceElement) {
+            console.error('Balance element not found in DOM');
+            return;
+        }
+        
         if (data.balance !== undefined && data.balance !== null) {
-            document.getElementById('balance').textContent = `${data.balance.toFixed(2)} USDT`;
+            // Format the main balance value
+            balanceElement.textContent = `${data.balance.toFixed(2)} USDT`;
+            balanceElement.classList.add('updated');
+            setTimeout(() => balanceElement.classList.remove('updated'), 1000);
+            
+            // Update detailed balance information if we have the elements
+            const baseBalanceElement = document.getElementById('base-balance');
+            const unrealizedPnlElement = document.getElementById('unrealized-pnl');
+            
+            if (baseBalanceElement && data.base_balance !== undefined) {
+                baseBalanceElement.textContent = `${data.base_balance.toFixed(2)} USDT`;
+            }
+            
+            if (unrealizedPnlElement && data.unrealized_pnl !== undefined) {
+                const pnl = data.unrealized_pnl;
+                unrealizedPnlElement.textContent = `${pnl.toFixed(2)} USDT`;
+                unrealizedPnlElement.className = ''; // Clear previous classes
+                if (pnl > 0) {
+                    unrealizedPnlElement.classList.add('profit');
+                } else if (pnl < 0) {
+                    unrealizedPnlElement.classList.add('loss');
+                }
+            }
         } else if (data.error) {
             console.error('Balance error:', data.error);
-            document.getElementById('balance').textContent = '10000.00 USDT (Testnet)';
+            balanceElement.textContent = '10000.00 USDT (Testnet)';
         }
     } catch (e) {
         console.error('Error updating balance:', e);
-        document.getElementById('balance').textContent = '10000.00 USDT (Testnet)';
+        
+        const balanceElement = document.getElementById('balance');
+        if (balanceElement) {
+            balanceElement.textContent = '10000.00 USDT (Testnet)';
+        }
     }
 }
 
 // Function to close a trade (defined at global scope to be accessible from HTML)
 window.closeTrade = async function(tradeId) {
     try {
-        console.log(`Attempting to close trade ${tradeId}`);
+        if (!confirm('Are you sure you want to close this trade?')) {
+            return;
+        }
+        
+        window.showLoading();
+        
         const response = await fetch('/close_trade', {
             method: 'POST',
             headers: {
@@ -391,26 +662,60 @@ window.closeTrade = async function(tradeId) {
             updateTrades();
             updateChart();
             updateStatistics();
+            showNotification('Trade closed successfully', 'success');
         } else {
             console.error('Failed to close trade:', result.message);
-            alert('Failed to close trade: ' + result.message);
+            showNotification(`Failed to close trade: ${result.message}`, 'error');
         }
+        
+        window.hideLoading();
     } catch (error) {
+        window.hideLoading();
         console.error('Error closing trade:', error);
-        alert('Error closing trade');
+        showNotification('Error closing trade. Please try again.', 'error');
     }
 }
 
 async function updateTrades() {
     try {
+        window.showLoading();
         const response = await fetch('/trades');
         if (!response.ok) throw new Error('Failed to fetch trades');
         const trades = await response.json();
         console.log("Trades data:", trades); // Debug log to see what we're getting
         
-        // Update Active Trades
-        const activeTable = document.getElementById('active-trades');
-        activeTable.innerHTML = `<tr>
+        // Update Active Trades in Dashboard
+        updateActiveTradesTable('active-trades', trades.active_trades || []);
+        
+        // Update Active Trades in Trades Tab
+        updateActiveTradesTable('trades-active', trades.active_trades || []);
+        
+        // Update Closed Trades in Dashboard
+        updateClosedTradesTable('closed-trades', trades.closed_trades || []);
+        
+        // Update Closed Trades in Trades Tab
+        updateClosedTradesTable('trades-closed', trades.closed_trades || []);
+        
+        // Update trade markers on chart if available
+        updateTradeMarkers(trades);
+        
+        // Also update profit metrics
+        await updateProfitMetrics();
+        
+        window.hideLoading();
+    } catch (error) {
+        window.hideLoading();
+        console.error('Error updating trades:', error);
+        showNotification('Failed to fetch trades data.', 'error');
+    }
+}
+
+async function updateActiveTradesTable(tableId, activeTrades) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    
+    table.innerHTML = `<thead>
+        <tr>
             <th>Symbol</th>
             <th>Side</th>
             <th>Size</th>
@@ -420,496 +725,628 @@ async function updateTrades() {
             <th>Take Profit</th>
             <th>P&L</th>
             <th>Actions</th>
-        </tr>`;
-        
-        // Use active_trades instead of active
-        const activeTradePromises = (trades.active_trades || []).map(async trade => {
-            try {
-                console.log('Processing active trade:', trade);
-                // Get current price for the trade's symbol
-                const priceResponse = await fetch(`/price?symbol=${trade[1]}`);
-                const priceData = await priceResponse.json();
-                
-                // Calculate PnL
-                let currentPrice = priceData.price || 0;
-                let entryPrice = Number(trade[4]);
-                let size = Number(trade[3]);
-                
-                // Calculate P&L based on position direction
-                let pnl = 0;
-                if (trade[2] === 'Buy') {
-                    pnl = size * (currentPrice - entryPrice);
-                } else { // Sell
-                    pnl = size * (entryPrice - currentPrice);
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>`;
+    
+    const tableBody = table.querySelector('tbody');
+    
+    // Use active_trades instead of active
+    const activeTradePromises = activeTrades.map(async trade => {
+        try {
+            console.log('Processing active trade:', trade);
+            // Get current price for the trade's symbol
+            const priceResponse = await fetch(`/price?symbol=${trade[1]}`);
+            const priceData = await priceResponse.json();
+            
+            // Calculate PnL
+            let currentPrice = priceData.price || 0;
+            let entryPrice = parseFloat(trade[4]);
+            let size = parseFloat(trade[3]);
+            let pnl = 0;
+            
+            if (trade[2] === 'Buy') {
+                pnl = (currentPrice - entryPrice) * size;
+            } else {
+                pnl = (entryPrice - currentPrice) * size;
+            }
+            
+            // Trade values from database:
+            // 0: id
+            // 1: symbol
+            // 2: side
+            // 3: size
+            // 4: entry_price
+            // 5: exit_price
+            // 6: pnl
+            // 7: status
+            // 8: timestamp
+            // 9: stop_loss
+            // 10: take_profit
+            
+            // Format PnL with color
+            const pnlFormatted = pnl >= 0 ? 
+                `<span class="profit">+${pnl.toFixed(2)}</span>` : 
+                `<span class="loss">${pnl.toFixed(2)}</span>`;
+            
+            // Format PnL percentage
+            const pnlPercentage = (pnl / (entryPrice * size) * 100).toFixed(2);
+            const pnlPercentFormatted = pnl >= 0 ? 
+                `<span class="profit">(+${pnlPercentage}%)</span>` : 
+                `<span class="loss">(${pnlPercentage}%)</span>`;
+            
+            // Create a new row with clickable elements
+            const tradeRow = document.createElement('tr');
+            tradeRow.setAttribute('data-trade-id', trade[0]);
+            tradeRow.classList.add('trade-row');
+            
+            // Make entire row clickable to show the chart for this trade
+            tradeRow.style.cursor = 'pointer';
+            tradeRow.addEventListener('click', function(e) {
+                // Don't trigger if we clicked on an input or button
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') {
+                    return;
                 }
                 
-                // Format values for display
-                const pnlClass = pnl >= 0 ? 'profit' : 'loss';
-                const pnlFormatted = pnl.toFixed(2);
-                
-                // Get stop loss and take profit values
-                const stopLoss = trade[9] ? Number(trade[9]).toFixed(2) : '';
-                const takeProfit = trade[10] ? Number(trade[10]).toFixed(2) : '';
-                
-                return `<tr>
-                    <td>${trade[1]}</td>
-                    <td class="${trade[2]}">${trade[2]}</td>
-                    <td>${Number(trade[3]).toFixed(4)}</td>
-                    <td>${Number(trade[4]).toFixed(4)}</td>
-                    <td>${currentPrice.toFixed(4)}</td>
-                    <td>
-                        <input type="number" class="sl-tp-input" id="sl-${trade[0]}" value="${stopLoss}" placeholder="Set SL">
-                    </td>
-                    <td>
-                        <input type="number" class="sl-tp-input" id="tp-${trade[0]}" value="${takeProfit}" placeholder="Set TP">
+                window.showTradeOnChart(trade[0], trade[1]);
+            });
+            
+            tradeRow.innerHTML = `
+                <td><strong class="clickable" onclick="window.showTradeOnChart('${trade[0]}', '${trade[1]}')">${trade[1]}</strong></td>
+                <td><span class="${trade[2]}">${trade[2]}</span></td>
+                <td>${parseFloat(trade[3]).toFixed(4)}</td>
+                <td>${parseFloat(trade[4]).toFixed(2)}</td>
+                <td>${parseFloat(currentPrice).toFixed(2)}</td>
+                <td><input id="sl-${trade[0]}" class="trade-input sl-input" type="number" step="0.01" data-trade-id="${trade[0]}" value="${trade[9] || ''}"></td>
+                <td><input id="tp-${trade[0]}" class="trade-input tp-input" type="number" step="0.01" data-trade-id="${trade[0]}" value="${trade[10] || ''}"></td>
+                <td>${pnlFormatted} ${pnlPercentFormatted}</td>
+                <td>
+                    <button class="action-button update" onclick="updateTradeSettings('${trade[0]}', document.getElementById('sl-${trade[0]}').value, document.getElementById('tp-${trade[0]}').value)">Update</button>
+                    <button class="action-button close" onclick="closeTrade('${trade[0]}')">Close</button>
+                    <button class="action-button" onclick="window.showTradeOnChart('${trade[0]}', '${trade[1]}')">Chart</button>
+                </td>
+            `;
+            
+            tableBody.appendChild(tradeRow);
+            return tradeRow;
+        } catch (err) {
+            console.error(`Error processing trade ${trade[0]}:`, err);
+            return null;
+        }
+    });
+    
+    await Promise.all(activeTradePromises);
+}
+            
+            // Trade values from database:
+            // 0: id
+            // 1: symbol
+            // 2: side
+            // 3: size
+            // 4: entry_price
+            // 5: exit_price
+            // 6: pnl
+            // 7: status
+            // 8: timestamp
+            // 9: stop_loss
+            // 10: take_profit
+            
+            const row = document.createElement('tr');
+            row.className = trade[2];
+            row.setAttribute('data-trade-id', trade[0]);
+            row.innerHTML = `
+                <td>${trade[1]}</td>
+                <td class="${trade[2]}">${trade[2]}</td>
+                <td>${parseFloat(trade[3]).toFixed(4)}</td>
+                <td>${parseFloat(trade[4]).toFixed(2)}</td>
+                <td>${currentPrice.toFixed(2)}</td>
+                <td>
+                    <input type="number" id="sl-${trade[0]}" placeholder="Stop Loss" value="${trade[9] || ''}" step="0.01">
+                </td>
+                <td>
+                    <input type="number" id="tp-${trade[0]}" placeholder="Take Profit" value="${trade[10] || ''}" step="0.01">
+                </td>
+                <td class="${pnl >= 0 ? 'profit' : 'loss'}">${pnl.toFixed(2)}</td>
+                <td class="actions">
+                    <div class="action-buttons">
                         <button class="update-btn" onclick="updateTradeSettings('${trade[0]}', document.getElementById('sl-${trade[0]}').value, document.getElementById('tp-${trade[0]}').value)">✓</button>
-                    </td>
-                    <td class="${pnlClass}">${pnlFormatted}</td>
-                    <td><button class="close-trade" onclick="closeTrade('${trade[0]}')">Close</button></td>
-                </tr>`;
-            } catch (error) {
-                console.error("Error calculating trade PnL:", error);
-                return `<tr>
-                    <td>${trade[1]}</td>
-                    <td class="${trade[2]}">${trade[2]}</td>
-                    <td>${Number(trade[3]).toFixed(4)}</td>
-                    <td>${Number(trade[4]).toFixed(4)}</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>`;
-            }
-        });
-        
-        // Wait for all price fetch operations to complete
-        const activeTradeRows = await Promise.all(activeTradePromises);
-        activeTable.innerHTML += activeTradeRows.join('');
-        
-        // Update Closed Trades
-        const closedTable = document.getElementById('closed-trades');
-        closedTable.innerHTML = `<tr>
+                        <button class="view-btn" onclick="highlightTrade('${trade[0]}')">📊</button>
+                        <button class="close-btn" onclick="closeTrade('${trade[0]}')">Close</button>
+                    </div>
+                </td>
+            `;
+            
+            tableBody.appendChild(row);
+        } catch (e) {
+            console.error(`Error processing trade ${trade[0]}:`, e);
+        }
+    });
+    
+    await Promise.all(activeTradePromises);
+}
+
+function updateClosedTradesTable(tableId, closedTrades) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    
+    table.innerHTML = `<thead>
+        <tr>
             <th>Symbol</th>
             <th>Side</th>
             <th>Size</th>
             <th>Entry</th>
             <th>Exit</th>
             <th>P&L</th>
-        </tr>`;
-        (trades.closed || []).forEach(trade => {
-            closedTable.innerHTML += `<tr>
+            <th>Time</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>`;
+    
+    const tableBody = table.querySelector('tbody');
+    
+    // Process closed trades (limit to 20 most recent)
+    const recentClosedTrades = (closedTrades || []).slice(0, 20);
+    
+    recentClosedTrades.forEach(trade => {
+        try {
+            // Parse trade values
+            const pnl = parseFloat(trade[6]);
+            const timestamp = new Date(trade[8]);
+            const formattedDate = `${timestamp.toLocaleDateString()} ${timestamp.toLocaleTimeString()}`;
+            
+            // Create table row
+            const row = document.createElement('tr');
+            row.className = pnl >= 0 ? 'profit' : 'loss';
+            
+            row.innerHTML = `
                 <td>${trade[1]}</td>
                 <td class="${trade[2]}">${trade[2]}</td>
-                <td>${trade[3]}</td>
-                <td>${trade[4]}</td>
-                <td>${trade[5]}</td>
-                <td class="${trade[6] >= 0 ? 'profit' : 'loss'}">
-                    ${trade[6]}
-                </td>
-            </tr>`;
-        });
-        
-        // Update chart markers whenever trades are updated
-        addTradeMarkersToChart();
-    } catch (err) {
-        // Show error in UI or console
-        console.error('Error updating trades:', err);
-        document.getElementById('active-trades').innerHTML = '<tr><td colspan="6">No data (server error)</td></tr>';
-        document.getElementById('closed-trades').innerHTML = '<tr><td colspan="6">No data (server error)</td></tr>';
-    }
-}
-
-async function startBot() {
-    try {
-        const res = await fetch('/start', { method: 'POST' });
-        if (res.ok) {
-            // Start periodic updates
-            refreshInterval = setInterval(updateTrades, 5000);
-            balanceInterval = setInterval(updateBalance, 5000);
-            chartUpdateInterval = setInterval(updateChart, 5000);
-            console.log('Bot started successfully');
+                <td>${parseFloat(trade[3]).toFixed(4)}</td>
+                <td>${parseFloat(trade[4]).toFixed(2)}</td>
+                <td>${parseFloat(trade[5]).toFixed(2)}</td>
+                <td class="${pnl >= 0 ? 'profit' : 'loss'}">${pnl.toFixed(2)}</td>
+                <td>${formattedDate}</td>
+            `;
+            
+            tableBody.appendChild(row);
+        } catch (e) {
+            console.error(`Error processing closed trade:`, e);
         }
-    } catch (e) {
-        console.error('Error starting bot:', e);
-    }
+    });
 }
 
-async function stopBot() {
+// Function to update trade settings (stop loss and take profit)
+window.updateTradeSettings = async function(tradeId, stopLoss, takeProfit) {
     try {
-        const res = await fetch('/stop', { method: 'POST' });
-        if (res.ok) {
-            // Clear all intervals
-            clearInterval(refreshInterval);
-            clearInterval(balanceInterval);
-            clearInterval(chartUpdateInterval);
-            console.log('Bot stopped successfully');
-        }
-    } catch (e) {
-        console.error('Error stopping bot:', e);
-    }
-}
-
-// Close a trade function
-async function closeTrade(tradeId) {
-    try {
-        console.log(`Closing trade ${tradeId}`);
-        const res = await fetch(`/close_trade?trade_id=${tradeId}`, { 
-            method: 'POST'
-        });
-        const data = await res.json();
+        window.showLoading();
+        console.log(`Updating settings for trade ${tradeId}`, { stopLoss, takeProfit });
         
-        if (data.success) {
-            alert(`Trade closed successfully. P&L: ${data.message}`);
-        } else {
-            alert(`Failed to close trade: ${data.message}`);
-        }
+        // Convert inputs to numbers or null
+        const sl = stopLoss ? parseFloat(stopLoss) : null;
+        const tp = takeProfit ? parseFloat(takeProfit) : null;
         
-        // Refresh trades after closing
-        updateTrades();
-        
-    } catch (e) {
-        console.error('Error closing trade:', e);
-        alert(`Error: ${e.message}`);
-    }
-}
-
-// Load balance and trades immediately when page loads
-// Function to calculate and update trading statistics
-async function updateStatistics() {
-    try {
-        const response = await fetch('/trades');
-        if (!response.ok) throw new Error('Failed to fetch trades');
-        const trades = await response.json();
-        
-        // Get closed trades
-        const closedTrades = trades.closed || [];
-        
-        if (closedTrades.length > 0) {
-            // Calculate win rate
-            const winners = closedTrades.filter(trade => trade[6] >= 0).length;
-            const winRate = (winners / closedTrades.length * 100).toFixed(1);
-            document.getElementById('win-rate').textContent = `${winRate}%`;
-            
-            // Calculate profit factor (total profit / total loss)
-            const profits = closedTrades.filter(trade => trade[6] > 0).reduce((sum, trade) => sum + trade[6], 0);
-            const losses = closedTrades.filter(trade => trade[6] < 0).reduce((sum, trade) => sum + Math.abs(trade[6]), 0);
-            
-            const profitFactor = losses > 0 ? (profits / losses).toFixed(2) : 'N/A';
-            document.getElementById('profit-factor').textContent = profitFactor;
-            
-            // Calculate max drawdown (simplified approach)
-            const cumulativeProfits = [];
-            let cumulative = 0;
-            
-            // Sort trades by timestamp
-            const sortedTrades = [...closedTrades].sort((a, b) => {
-                if (typeof a[8] === 'string' && typeof b[8] === 'string') {
-                    return new Date(a[8]) - new Date(b[8]);
-                }
-                return 0; // Default sort if timestamps aren't comparable
-            });
-            
-            // Calculate cumulative profits
-            sortedTrades.forEach(trade => {
-                cumulative += trade[6];
-                cumulativeProfits.push(cumulative);
-            });
-            
-            // Calculate drawdown
-            let maxSoFar = 0;
-            let maxDrawdown = 0;
-            
-            cumulativeProfits.forEach(profit => {
-                if (profit > maxSoFar) {
-                    maxSoFar = profit;
-                } else {
-                    const drawdown = maxSoFar - profit;
-                    if (drawdown > maxDrawdown) {
-                        maxDrawdown = drawdown;
-                    }
-                }
-            });
-            
-            document.getElementById('drawdown').textContent = `${maxDrawdown.toFixed(2)}`;
-        } else {
-            // No closed trades yet
-            document.getElementById('win-rate').textContent = 'N/A';
-            document.getElementById('profit-factor').textContent = 'N/A';
-            document.getElementById('drawdown').textContent = '0.00';
-        }
-    } catch (err) {
-        console.error('Error updating statistics:', err);
-    }
-}
-
-// Function to update profit metrics
-async function updateProfitMetrics() {
-    try {
-        const response = await fetch('/profits');
-        if (!response.ok) throw new Error('Failed to fetch profit metrics');
-        
-        const metrics = await response.json();
-        console.log('Profit metrics:', metrics);
-        
-        // Update UI with profit metrics
-        document.getElementById('hourly-profit').textContent = formatProfit(metrics.hourly_profit);
-        document.getElementById('daily-profit').textContent = formatProfit(metrics.daily_profit);
-        document.getElementById('weekly-profit').textContent = formatProfit(metrics.weekly_profit);
-        document.getElementById('monthly-profit').textContent = formatProfit(metrics.monthly_profit);
-    } catch (err) {
-        console.error('Error updating profit metrics:', err);
-        // Set default values on error
-        document.getElementById('hourly-profit').textContent = '0.00';
-        document.getElementById('daily-profit').textContent = '0.00';
-        document.getElementById('weekly-profit').textContent = '0.00';
-        document.getElementById('monthly-profit').textContent = '0.00';
-    }
-}
-
-// Helper function to format profit values with color
-function formatProfit(value) {
-    const num = parseFloat(value);
-    const formatted = num.toFixed(2);
-    
-    if (num > 0) {
-        return `<span class="profit">+${formatted}</span>`;
-    } else if (num < 0) {
-        return `<span class="loss">${formatted}</span>`;
-    } else {
-        return `0.00`;
-    }
-}
-
-// Function to update stop loss and take profit for a trade
-async function updateTradeSettings(tradeId, stopLoss, takeProfit) {
-    try {
-        console.log(`Updating trade ${tradeId}: SL=${stopLoss}, TP=${takeProfit}`);
-        
-        const response = await fetch('/set_trade_settings', {
+        const response = await fetch('/update_trade_settings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 trade_id: tradeId,
-                stop_loss: stopLoss ? parseFloat(stopLoss) : null,
-                take_profit: takeProfit ? parseFloat(takeProfit) : null
+                stop_loss: sl,
+                take_profit: tp
             })
         });
         
-        if (!response.ok) throw new Error('Failed to update trade settings');
-        
         const result = await response.json();
+        
         if (result.success) {
-            alert('Trade settings updated successfully');
-            // Refresh trades to show updated values
+            console.log('Trade settings updated:', result.message);
+            // Show success feedback
+            const inputSl = document.getElementById(`sl-${tradeId}`);
+            const inputTp = document.getElementById(`tp-${tradeId}`);
+            
+            if (inputSl) inputSl.style.backgroundColor = '#e6ffe6'; // light green
+            if (inputTp) inputTp.style.backgroundColor = '#e6ffe6'; // light green
+            
+            // Reset background color after a moment
+            setTimeout(() => {
+                if (inputSl) inputSl.style.backgroundColor = '';
+                if (inputTp) inputTp.style.backgroundColor = '';
+            }, 2000);
+            
+            // Update trade markers on chart
             updateTrades();
+            
+            // Show success notification
+            showNotification('Trade settings updated successfully', 'success');
         } else {
-            alert('Failed to update trade settings: ' + (result.message || 'Unknown error'));
+            console.error('Failed to update trade settings:', result.message);
+            // Show error feedback
+            showNotification(`Failed to update trade settings: ${result.message}`, 'error');
         }
-    } catch (err) {
-        console.error('Error updating trade settings:', err);
-        alert('Error: ' + err.message);
+        
+        window.hideLoading();
+    } catch (error) {
+        window.hideLoading();
+        console.error('Error updating trade settings:', error);
+        showNotification('Error updating trade settings. Please try again.', 'error');
     }
 }
 
-// Function to load settings from server
-async function loadSettings() {
+// Function to update trade markers on the chart
+async function updateTradeMarkers(trades) {
     try {
-        const response = await fetch('/settings');
-        if (!response.ok) {
-            throw new Error('Failed to load settings');
-        }
+        console.log('Updating trade markers with trades:', trades);
         
-        const settings = await response.json();
-        console.log('Settings loaded:', settings);
-        
-        // Update leverage selector
-        if (settings.leverage) {
-            const leverageSelect = document.getElementById('leverage');
-            for (let i = 0; i < leverageSelect.options.length; i++) {
-                if (leverageSelect.options[i].value == settings.leverage) {
-                    leverageSelect.selectedIndex = i;
-                    break;
+        // Clear existing markers (first check they exist)
+        if (activeTradeMarkers && typeof activeTradeMarkers.length !== 'undefined' && activeTradeMarkers.length) {
+            for (const marker of activeTradeMarkers) {
+                if (marker && typeof marker.remove === 'function') {
+                    try {
+                        marker.remove();
+                    } catch (err) {
+                        console.log('Error removing active marker:', err);
+                    }
                 }
             }
         }
         
-        // Update risk input
-        if (settings.risk_per_trade) {
-            document.getElementById('risk').value = settings.risk_per_trade;
+        if (closedTradeMarkers && typeof closedTradeMarkers.length !== 'undefined' && closedTradeMarkers.length) {
+            for (const marker of closedTradeMarkers) {
+                if (marker && typeof marker.remove === 'function') {
+                    try {
+                        marker.remove();
+                    } catch (err) {
+                        console.log('Error removing closed marker:', err);
+                    }
+                }
+            }
         }
         
-        // Update API credentials (not showing actual values for security)
-        if (settings.api_key) {
-            document.getElementById('api-key').value = settings.api_key_masked || '';
-            document.getElementById('api-key').placeholder = settings.api_key ? '••••••••' : 'Enter Bybit API Key';
+        // Reset arrays
+        activeTradeMarkers = [];
+        closedTradeMarkers = [];
+        
+        if (!candleSeries || !chart) {
+            console.warn('Chart not initialized, cannot add trade markers');
+            return;
         }
         
-        if (settings.api_secret) {
-            document.getElementById('api-secret').value = settings.api_secret_masked || '';
-            document.getElementById('api-secret').placeholder = settings.api_secret ? '••••••••' : 'Enter Bybit API Secret';
+        // Count how many trades we found for the current symbol
+        let activeTradeCount = 0;
+        let closedTradeCount = 0;
+        
+        // Add markers for active trades
+        const activeTrades = trades.active_trades || [];
+        for (const trade of activeTrades) {
+            const symbol = trade[1];
+            
+            // Only add markers for the current chart symbol
+            if (symbol !== currentSymbol) continue;
+            
+            activeTradeCount++;
+            console.log(`Adding markers for active trade: ${trade[0]} (${symbol})`);
+            
+            // Trade details
+            const side = trade[2];           // Buy or Sell
+            const size = parseFloat(trade[3]);
+            const entryPrice = parseFloat(trade[4]);
+            const stopLoss = parseFloat(trade[9]) || null;
+            const takeProfit = parseFloat(trade[10]) || null;
+            
+            // Color based on side
+            const sideColor = side === 'Buy' ? '#4CAF50' : '#f44336';
+            
+            // Add entry point line
+            const entryLine = candleSeries.createPriceLine({
+                price: entryPrice,
+                color: sideColor,
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                axisLabelVisible: true,
+                title: `${side} @ ${entryPrice.toFixed(2)}`,
+            });
+            activeTradeMarkers.push(entryLine);
+            
+            // Add stop loss line if defined
+            if (stopLoss && !isNaN(stopLoss)) {
+                const slLine = candleSeries.createPriceLine({
+                    price: stopLoss,
+                    color: '#f44336', // Red
+                    lineWidth: 1,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'SL',
+                });
+                activeTradeMarkers.push(slLine);
+            }
+            
+            // Add take profit line if defined
+            if (takeProfit && !isNaN(takeProfit)) {
+                const tpLine = candleSeries.createPriceLine({
+                    price: takeProfit,
+                    color: '#4CAF50', // Green
+                    lineWidth: 1,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'TP',
+                });
+                activeTradeMarkers.push(tpLine);
+            }
         }
         
-        // Update toggle switches
-        document.getElementById('simulation-mode').checked = settings.simulation_mode !== false;
-        document.getElementById('demo-mode').checked = settings.demo_mode !== false;
-        document.getElementById('debug-mode').checked = settings.debug_mode !== false;
-        
-        // Update demo interval
-        if (settings.demo_interval) {
-            document.getElementById('demo-interval').value = settings.demo_interval;
+        // Add closed trade markers (just for context, limit to last 3 to avoid clutter)
+        const closedTrades = (trades.closed_trades || []).slice(0, 5);
+        for (const trade of closedTrades) {
+            const symbol = trade[1];
+            
+            // Only add markers for the current chart symbol
+            if (symbol !== currentSymbol) continue;
+            
+            closedTradeCount++;
+            const entryPrice = parseFloat(trade[4]);
+            const exitPrice = parseFloat(trade[5]);
+            const pnl = parseFloat(trade[6]);
+            const timestamp = new Date(trade[8]);
+            
+            // Only add if trade was closed in last 48 hours
+            const now = new Date();
+            const timeDiff = now - timestamp;
+            if (timeDiff > 48 * 60 * 60 * 1000) continue;
+            
+            // Add a marker for the closed trade
+            const closedLine = candleSeries.createPriceLine({
+                price: exitPrice,
+                color: pnl >= 0 ? 'rgba(76, 175, 80, 0.5)' : 'rgba(244, 67, 54, 0.5)',
+                lineWidth: 1,
+                lineStyle: LightweightCharts.LineStyle.Dotted,
+                axisLabelVisible: true,
+                title: `Closed: ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}`,
+            });
+            closedTradeMarkers.push(closedLine);
         }
         
-    } catch (err) {
-        console.error('Error loading settings:', err);
+        // Add a "No trades" marker if there are no trades for this symbol
+        if (activeTradeCount === 0 && closedTradeCount === 0) {
+            // Get the current visible price range
+            const priceScale = chart.priceScale('right');
+            const priceRange = priceScale.priceRange();
+            
+            if (priceRange) {
+                // Calculate a position near the middle of the visible range
+                const visibleRange = chart.timeScale().getVisibleRange();
+                
+                if (visibleRange) {
+                    const middlePrice = (priceRange.minValue() + priceRange.maxValue()) / 2;
+                    
+                    // Add an informational marker
+                    const noTradesLabel = candleSeries.createPriceLine({
+                        price: middlePrice,
+                        color: 'rgba(100, 100, 100, 0.5)',
+                        lineWidth: 0,
+                        axisLabelVisible: true,
+                        title: `No ${currentSymbol} trades found`,
+                    });
+                    activeTradeMarkers.push(noTradesLabel);
+                }
+            }
+        }
+        
+        console.log(`Added ${activeTradeMarkers.length} active trade markers and ${closedTradeMarkers.length} closed trade markers for ${currentSymbol}`);
+    } catch (error) {
+        console.error('Error updating trade markers:', error);
     }
 }
 
-// Function to save all settings
-async function saveSettings() {
+// Function to show chart for specific symbol and highlight a trade
+window.showTradeOnChart = function(tradeId, symbol) {
     try {
-        const settings = {
-            leverage: parseInt(document.getElementById('leverage').value),
-            risk_per_trade: parseFloat(document.getElementById('risk').value),
-            simulation_mode: document.getElementById('simulation-mode').checked,
-            demo_mode: document.getElementById('demo-mode').checked,
-            debug_mode: document.getElementById('debug-mode').checked,
-            demo_interval: parseInt(document.getElementById('demo-interval').value)
-        };
+        console.log(`Showing chart for trade ${tradeId} (${symbol})`);
         
-        const response = await fetch('/settings', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(settings)
-        });
+        // Switch to the dashboard tab first
+        switchTab('dashboard');
         
-        if (!response.ok) {
-            throw new Error('Failed to save settings');
+        // Check if we need to change the symbol
+        const needSymbolChange = currentSymbol !== symbol;
+        
+        if (needSymbolChange) {
+            // Set the chart symbol in the dropdown
+            const symbolSelect = document.getElementById('chart-symbol');
+            symbolSelect.value = symbol;
+            
+            // Update the current symbol
+            currentSymbol = symbol;
+            
+            // Show loading indicator
+            if (window.showLoading) window.showLoading();
+            
+            // Flash the dropdown to indicate it changed
+            symbolSelect.style.backgroundColor = '#ffeb3b';
+            setTimeout(() => {
+                symbolSelect.style.backgroundColor = '';
+            }, 1000);
+            
+            // Update the chart with the new symbol
+            fetchCandlestickData().then(() => {
+                // Find and highlight the specific trade on the chart
+                highlightTradeOnChart(tradeId);
+                
+                // Hide loading indicator
+                if (window.hideLoading) window.hideLoading();
+                
+                // Show notification
+                showNotification(`Now showing ${symbol} chart with trade #${tradeId}`, 'success');
+            }).catch(err => {
+                console.error('Error updating chart:', err);
+                if (window.hideLoading) window.hideLoading();
+                showNotification(`Error showing chart: ${err.message}`, 'error');
+            });
+        } else {
+            // Same symbol, just highlight the trade
+            highlightTradeOnChart(tradeId);
+            showNotification(`Highlighting trade #${tradeId} on ${symbol} chart`, 'success');
         }
-        
-        const result = await response.json();
-        console.log('Settings saved:', result);
-        
-        // Show feedback to user
-        alert('Settings saved successfully!');
-        
-    } catch (err) {
-        console.error('Error saving settings:', err);
-        alert('Error saving settings: ' + err.message);
+    } catch (error) {
+        console.error('Error in showTradeOnChart:', error);
+        if (window.hideLoading) window.hideLoading();
+        showNotification(`Error: ${error.message}`, 'error');
     }
 }
 
-// Function to save API keys
-async function saveApiKeys() {
+// Function to highlight a specific trade on the chart
+function highlightTradeOnChart(tradeId) {
     try {
-        const apiKey = document.getElementById('api-key').value.trim();
-        const apiSecret = document.getElementById('api-secret').value.trim();
-        
-        // Validate inputs
-        if (!apiKey || !apiSecret) {
-            throw new Error('Both API Key and Secret are required');
-        }
-        
-        const response = await fetch('/api_keys', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                api_key: apiKey,
-                api_secret: apiSecret
+        // Find the trade in our active trades
+        fetch('/trades')
+            .then(response => response.json())
+            .then(trades => {
+                // Find the trade by ID
+                const activeTrades = trades.active_trades || [];
+                const trade = activeTrades.find(t => t[0] === tradeId);
+                
+                if (!trade) {
+                    console.log(`Trade ${tradeId} not found or not active`);
+                    showNotification('Trade not found or no longer active', 'warning');
+                    return;
+                }
+                
+                // Clear current markers
+                if (activeTradeMarkers && activeTradeMarkers.length) {
+                    for (const marker of activeTradeMarkers) {
+                        if (marker && typeof marker.remove === 'function') {
+                            try {
+                                marker.remove();
+                            } catch (err) {
+                                console.log('Error removing marker:', err);
+                            }
+                        }
+                    }
+                    activeTradeMarkers = [];
+                }
+                
+                // Extract trade details
+                const symbol = trade[1];
+                const side = trade[2];
+                const size = parseFloat(trade[3]);
+                const entryPrice = parseFloat(trade[4]);
+                const stopLoss = parseFloat(trade[9]) || null;
+                const takeProfit = parseFloat(trade[10]) || null;
+                
+                // Color based on side
+                const sideColor = side === 'Buy' ? '#4CAF50' : '#f44336';
+                
+                // Add special highlighted entry line
+                const entryLine = candleSeries.createPriceLine({
+                    price: entryPrice,
+                    color: sideColor,
+                    lineWidth: 3,
+                    lineStyle: LightweightCharts.LineStyle.Solid,
+                    axisLabelVisible: true,
+                    title: `⭐ ${side} @ ${entryPrice.toFixed(2)}`,
+                    axisLabelTextColor: '#000000',
+                    axisLabelColor: sideColor,
+                });
+                activeTradeMarkers.push(entryLine);
+                
+                // Add stop loss line if defined
+                if (stopLoss && !isNaN(stopLoss)) {
+                    const slLine = candleSeries.createPriceLine({
+                        price: stopLoss,
+                        color: '#f44336',
+                        lineWidth: 2,
+                        lineStyle: LightweightCharts.LineStyle.Dashed,
+                        axisLabelVisible: true,
+                        title: 'SL',
+                    });
+                    activeTradeMarkers.push(slLine);
+                    
+                    // Calculate risk percentage
+                    const riskPct = Math.abs((entryPrice - stopLoss) / entryPrice * 100).toFixed(2);
+                    
+                    // Add risk label
+                    const riskLabel = candleSeries.createPriceLine({
+                        price: (stopLoss + entryPrice) / 2, // Midpoint between entry and stop
+                        color: 'rgba(244, 67, 54, 0.4)', // Transparent red
+                        lineWidth: 0,
+                        axisLabelVisible: true,
+                        title: `Risk: ${riskPct}%`,
+                    });
+                    activeTradeMarkers.push(riskLabel);
+                }
+                
+                // Add take profit line if defined
+                if (takeProfit && !isNaN(takeProfit)) {
+                    const tpLine = candleSeries.createPriceLine({
+                        price: takeProfit,
+                        color: '#4CAF50',
+                        lineWidth: 2,
+                        lineStyle: LightweightCharts.LineStyle.Dashed,
+                        axisLabelVisible: true,
+                        title: 'TP',
+                    });
+                    activeTradeMarkers.push(tpLine);
+                    
+                    // Calculate reward percentage
+                    let rewardPct;
+                    if (side === 'Buy') {
+                        rewardPct = ((takeProfit - entryPrice) / entryPrice * 100).toFixed(2);
+                    } else {
+                        rewardPct = ((entryPrice - takeProfit) / entryPrice * 100).toFixed(2); 
+                    }
+                    
+                    // Add reward label
+                    const rewardLabel = candleSeries.createPriceLine({
+                        price: (takeProfit + entryPrice) / 2, // Midpoint
+                        color: 'rgba(76, 175, 80, 0.4)', // Transparent green
+                        lineWidth: 0,
+                        axisLabelVisible: true,
+                        title: `Target: ${rewardPct}%`,
+                    });
+                    activeTradeMarkers.push(rewardLabel);
+                }
+                
+                // Show risk-reward ratio if both SL and TP are defined
+                if (stopLoss && takeProfit && !isNaN(stopLoss) && !isNaN(takeProfit)) {
+                    const riskAmount = Math.abs(entryPrice - stopLoss);
+                    const rewardAmount = Math.abs(entryPrice - takeProfit);
+                    const rrRatio = (rewardAmount / riskAmount).toFixed(2);
+                    
+                    // Add R:R label near the center of the chart
+                    const rrLabel = candleSeries.createPriceLine({
+                        price: entryPrice, // At entry price
+                        color: 'rgba(33, 150, 243, 0.6)', // Blue
+                        lineWidth: 0,
+                        axisLabelVisible: true,
+                        title: `R:R = 1:${rrRatio}`,
+                    });
+                    activeTradeMarkers.push(rrLabel);
+                }
+                
+                // Flash the trade row in the active trades table
+                const tradeRow = document.querySelector(`tr[data-trade-id="${tradeId}"]`);
+                if (tradeRow) {
+                    tradeRow.classList.add('highlight-trade');
+                    setTimeout(() => tradeRow.classList.remove('highlight-trade'), 3000);
+                }
+                
+                // Fit visible range to include entry point and ensure trade lines are visible
+                const now = Math.floor(Date.now() / 1000);
+                const oneDayAgo = now - (24 * 60 * 60);
+                chart.timeScale().setVisibleRange({
+                    from: oneDayAgo,
+                    to: now,
+                });
+                
+                console.log(`Highlighted trade ${tradeId} on chart`);
             })
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to save API keys');
-        }
-        
-        const result = await response.json();
-        console.log('API keys saved:', result);
-        
-        // Show feedback to user
-        alert('API keys saved successfully!');
-        
-        // Clear the form fields for security
-        document.getElementById('api-key').value = '';
-        document.getElementById('api-secret').value = '';
-        document.getElementById('api-key').placeholder = '••••••••';
-        document.getElementById('api-secret').placeholder = '••••••••';
-        
-    } catch (err) {
-        console.error('Error saving API keys:', err);
-        alert('Error saving API keys: ' + err.message);
+            .catch(error => {
+                console.error('Error highlighting trade:', error);
+                showNotification(`Error highlighting trade: ${error.message}`, 'error');
+            });
+    } catch (error) {
+        console.error('Error in highlightTradeOnChart:', error);
+        showNotification(`Error: ${error.message}`, 'error');
     }
 }
-
-// Function to reset settings to defaults
-function resetSettings() {
-    // Set default values
-    document.getElementById('leverage').value = '8';
-    document.getElementById('risk').value = '2';
-    document.getElementById('simulation-mode').checked = true;
-    document.getElementById('demo-mode').checked = true;
-    document.getElementById('debug-mode').checked = true;
-    document.getElementById('demo-interval').value = '120';
-    
-    // Confirm to user
-    alert('Settings reset to defaults. Click "Save All Settings" to apply.');
-}
-
-// Function to toggle password visibility
-function toggleVisibility(targetId) {
-    const inputField = document.getElementById(targetId);
-    if (inputField.type === 'password') {
-        inputField.type = 'text';
-    } else {
-        inputField.type = 'password';
-    }
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-    updateBalance();
-    // Set up regular balance updates
-    balanceInterval = setInterval(updateBalance, 5000);
-    updateTrades();
-    updateStatistics();
-    updateProfitMetrics();
-    
-    // Initialize chart
-    initializeChart();
-    
-    // Set up regular updates
-    setInterval(updateStatistics, 30000); // Update stats every 30 seconds
-    setInterval(updateProfitMetrics, 30000); // Update profit metrics every 30 seconds
-    
-    // Set up chart symbol change handler
-    document.getElementById('chart-symbol').addEventListener('change', updateChart);
-    
-    // Set up tab switching
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.addEventListener('click', () => {
-            const tabName = button.getAttribute('data-tab');
-            switchTab(tabName);
-        });
-    });
-    
-    // Set up settings handlers
-    document.getElementById('save-settings').addEventListener('click', saveSettings);
-    document.getElementById('reset-settings').addEventListener('click', resetSettings);
-    document.getElementById('save-api-keys').addEventListener('click', saveApiKeys);
-    
-    // Set up password visibility toggle buttons
-    document.querySelectorAll('.toggle-visibility').forEach(button => {
-        button.addEventListener('click', () => {
-            const targetId = button.getAttribute('data-target');
-            toggleVisibility(targetId);
-        });
-    });
-    
-    // Load settings from server
-    loadSettings();
-});

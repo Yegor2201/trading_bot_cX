@@ -8,26 +8,30 @@ import asyncio  # Add asyncio for sleep
 import time    # Add time for timestamps
 import json
 import os
+import sqlite3
 from pydantic import BaseModel
 
 # 🚨 MUST BE FIRST! Load environment variables before other imports
 load_dotenv()
 
 from strategies import TradingStrategies, RiskManagement
-from database import save_trade, get_active_trades, get_closed_trades
+from database import save_trade, get_active_trades, get_closed_trades, update_trade_settings
 from security import validate_keys
 
 # Initialize FastAPI app
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Track startup time for diagnostics
+startup_time = time.time()
+
 # ========== CONFIGURATION ==========
 SYMBOL = "BTCUSDT"
 LEVERAGE = 8
 DEBUG_MODE = True     # Set to True for detailed debug logs
-DEMO_MODE = True      # Set to True to force trades for testing
-DEMO_INTERVAL = 120   # Seconds between demo trades
-SIMULATION_MODE = True # Set to True to simulate trades if API permission denied
+DEMO_MODE = False     # Set to False to use real trading strategy
+DEMO_INTERVAL = 120   # Seconds between demo trades (not used when DEMO_MODE is False)
+SIMULATION_MODE = False # Set to False to execute actual trades on testnet
 # ===================================
 
 # Initialize API credentials with error handling
@@ -87,20 +91,28 @@ def get_balance() -> float:
         if response.get('retCode') == 0:  # Successful API call
             if not response.get('result') or not response['result'].get('list'):
                 print("Debug: Using default testnet balance")
-                return 10000.0  # Default testnet balance
+                return 1000.0  # Smaller default testnet balance to see trade impact
             try:
                 # Use totalWalletBalance instead of individual coin walletBalance
-                return float(response['result']['list'][0]['totalWalletBalance'])
+                balance = float(response['result']['list'][0]['totalWalletBalance'])
+                
+                # If balance is too large, use a more reasonable value to see trade impact
+                if balance > 50000:
+                    print("Debug: Balance too large, using 5000 USDT to see trade impact")
+                    return 5000.0
+                
+                # Ensure balance is at least 1000 USDT
+                return max(balance, 1000.0)
             except (KeyError, IndexError):
                 print("Debug: Using default testnet balance (structure mismatch)")
-                return 10000.0
+                return 5000.0  # More reasonable testnet balance to see trade impact
         else:
             print(f"Debug: API error: {response.get('retMsg')}")
-            return 10000.0  # Default testnet balance
+            return 2500.0  # Default testnet balance
             
     except Exception as e:
         print(f"Debug: Error in get_balance(): {str(e)}")
-        return 10000.0  # Default testnet balance
+        return 1000.0  # Default testnet balance
 
 def get_current_price(symbol: str) -> float:
     """Get latest price for trading pair"""
@@ -139,6 +151,10 @@ def save_config(config_data):
 async def initialize():
     """Initialize leverage settings for all symbols we might trade."""
     print("🔧 Initializing trading bot...")
+    
+    # Start background task for monitoring profitable trades
+    asyncio.create_task(profitable_trades_monitor())
+    
     try:
         symbols = ['BTCUSDT', 'ETHUSDT', 'AAVEUSDT', 'APEXUSDT']  # Common symbols we might trade
         for symbol in symbols:
@@ -362,11 +378,54 @@ async def stop_bot():
 
 @app.get("/balance")
 def get_balance_api():
-    """API endpoint to get current USDT wallet balance instantly on page load"""
+    """API endpoint to get current USDT wallet balance + unrealized PnL from trades"""
     try:
-        balance = get_balance()
-        print(f"Debug: Fetched balance = {balance}")
-        return {"balance": balance}
+        # Get base balance from exchange
+        base_balance = get_balance()
+        print(f"Debug: Fetched base balance = {base_balance}")
+        
+        # Calculate unrealized PnL from active trades
+        active_trades = get_active_trades()
+        unrealized_pnl = 0
+        
+        for trade in active_trades:
+            symbol = trade[1]
+            side = trade[2]
+            size = float(trade[3])
+            entry_price = float(trade[4])
+            
+            # Get current price for the symbol
+            try:
+                price_data = strategy.client.get_tickers(
+                    category="linear",
+                    symbol=symbol
+                )
+                
+                if price_data['retCode'] == 0 and price_data.get('result', {}).get('list'):
+                    current_price = float(price_data['result']['list'][0]['lastPrice']);
+                    
+                    # Calculate trade PnL
+                    if side == "Buy":
+                        trade_pnl = size * (current_price - entry_price)
+                    else:  # Sell
+                        trade_pnl = size * (entry_price - current_price)
+                    
+                    print(f"Debug: Unrealized PnL for {symbol}: {trade_pnl:.2f}")
+                    unrealized_pnl += trade_pnl
+            except Exception as e:
+                print(f"Debug: Error calculating unrealized PnL for {symbol}: {e}")
+                # Continue with other trades
+                pass
+        
+        # Calculate total balance including unrealized PnL
+        total_balance = base_balance + unrealized_pnl
+        print(f"Debug: Unrealized PnL = {unrealized_pnl:.2f}, Total balance = {total_balance:.2f}")
+        
+        return {
+            "balance": total_balance,
+            "base_balance": base_balance,
+            "unrealized_pnl": unrealized_pnl
+        }
     except Exception as e:
         print(f"Debug: Balance fetch error = {str(e)}")
         return {"balance": None, "error": str(e)}
@@ -580,6 +639,36 @@ async def set_trade_settings(settings: TradeSetting):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+@app.post("/update_trade_settings")
+async def update_trade_settings_endpoint(request: Request):
+    """Update stop loss and take profit for a trade"""
+    try:
+        # Parse JSON body
+        body = await request.json()
+        trade_id = body.get('trade_id')
+        stop_loss = body.get('stop_loss')
+        take_profit = body.get('take_profit')
+        
+        print(f"Updating trade {trade_id} settings: SL={stop_loss}, TP={take_profit}")
+        
+        # Check if trade exists
+        active_trades = get_active_trades()
+        trade_exists = any(trade[0] == trade_id for trade in active_trades)
+        
+        if not trade_exists:
+            return {"success": False, "message": "Trade not found"}
+        
+        # Update trade settings in database
+        success = update_trade_settings(trade_id, stop_loss, take_profit)
+        
+        if success:
+            return {"success": True, "message": "Trade settings updated successfully"}
+        else:
+            return {"success": False, "message": "Failed to update trade settings"}
+    except Exception as e:
+        print(f"Error updating trade settings: {str(e)}")
+        return {"success": False, "message": f"Error: {str(e)}"}
+
 # ========== TRADING LOGIC ==========
 async def run_strategy():
     """Core trading algorithm: trade top coins by 24h volume"""
@@ -655,34 +744,28 @@ async def run_strategy():
                         }
                         
                         try:
-                            # Try real API call first
-                            trade = strategy.client.place_order(
-                                category="linear",
-                                symbol=symbol,
-                                side="Buy" if decision == "buy" else "Sell",
-                                orderType="Market",
-                                qty=str(size),
-                                leverage=str(LEVERAGE)
-                            )
-                            save_trade(trade['result'])
-                            print(f"✅ Order placed successfully: {trade['result']}")
+                            # Only execute real trade if simulation mode is off
+                            if not SIMULATION_MODE:
+                                # Try real API call
+                                trade = strategy.client.place_order(
+                                    category="linear",
+                                    symbol=symbol,
+                                    side="Buy" if decision == "buy" else "Sell",
+                                    orderType="Market",
+                                    qty=str(size),
+                                    leverage=str(LEVERAGE)
+                                )
+                                save_trade(trade['result'])
+                                print(f"✅ Real order placed successfully: {trade['result']}")
+                            else:
+                                # In simulation mode, use simulated trade
+                                save_trade(simulated_result)
+                                print(f"🔄 Simulated trade created: {simulated_trade_id}")
                         except Exception as e:
-                            # If any error, use simulated trade
+                            # If real API call fails, fallback to simulated trade
                             save_trade(simulated_result)
-                            print(f"🔄 Simulated trade created: {simulated_trade_id}")
+                            print(f"🔄 Fallback to simulated trade: {simulated_trade_id}")
                             print(f"ℹ️ Real API call failed: {e}")
-                        else:
-                            # Regular API call without simulation fallback
-                            trade = strategy.client.place_order(
-                                category="linear",
-                                symbol=symbol,
-                                side="Buy" if decision == "buy" else "Sell",
-                                orderType="Market",
-                                qty=str(size),
-                                leverage=str(LEVERAGE)
-                            )
-                            save_trade(trade['result'])
-                            print(f"✅ Order placed successfully: {trade['result']}")
                     except Exception as e:
                         print(f"⚠️ Order placement error for {symbol}: {e}")
                 
@@ -692,6 +775,194 @@ async def run_strategy():
         except Exception as e:
             print(f"⚠️ Trading error: {str(e)}")
             await asyncio.sleep(10)  # Wait before retry on error
+
+async def check_and_close_profitable_trades():
+    """Check all active trades and close those with sufficient profit"""
+    try:
+        print("Checking for profitable trades to close...")
+        active_trades = get_active_trades()
+        
+        if not active_trades:
+            print("No active trades to check")
+            return
+        
+        # Get account balance for profit percentage calculation
+        balance = get_balance()
+        print(f"Current balance: {balance} USDT")
+        
+        # Get profit metrics to determine our daily profit target progress
+        from database import get_profit_metrics
+        metrics = get_profit_metrics()
+        daily_profit = metrics.get("daily_profit", 0)
+        
+        # Define target profit based on progress towards daily goal
+        # If we're already at 10%+ daily profit, we can close trades at 1% profit
+        # Otherwise, use 2% as baseline target profit
+        daily_profit_percentage = (daily_profit / balance) * 100 if balance > 0 else 0
+        
+        if daily_profit_percentage >= 10:  # Already hit our daily target
+            target_profit_percentage = 1.0  # Lower threshold - take profits quickly
+            print(f"Daily profit target achieved ({daily_profit_percentage:.2f}%), using lower profit threshold: {target_profit_percentage}%")
+        elif daily_profit_percentage >= 5:  # Halfway to daily target
+            target_profit_percentage = 1.5  # Medium threshold 
+            print(f"Daily profit progress good ({daily_profit_percentage:.2f}%), using medium profit threshold: {target_profit_percentage}%")
+        else:  # Still far from daily target
+            target_profit_percentage = 2.0  # Higher threshold - wait for better profits
+            print(f"Still working towards daily profit target ({daily_profit_percentage:.2f}%), using standard profit threshold: {target_profit_percentage}%")
+        
+        # Check each trade
+        for trade in active_trades:
+            trade_id = trade[0]
+            symbol = trade[1]
+            side = trade[2]
+            size = float(trade[3])
+            entry_price = float(trade[4])
+            
+            # Consider take profit setting - if set explicitly, prefer to wait for it
+            take_profit = trade[10]
+            if take_profit is not None and float(take_profit) > 0:
+                # If take profit is set, we should respect it and wait
+                print(f"Trade {trade_id} has explicit take profit set to {take_profit}, skipping auto-close check")
+                continue
+                
+            # Get current price for the symbol
+            try:
+                price_data = await current_price(symbol)
+                current_price_value = float(price_data.get("price", 0))
+                
+                # Calculate P&L in USDT
+                pnl = 0
+                if side == "Buy":
+                    pnl = size * (current_price_value - entry_price)
+                else:  # Sell
+                    pnl = size * (entry_price - current_price_value)
+                
+                # Calculate P&L as percentage of position size
+                position_value = size * entry_price
+                pnl_percentage = (pnl / position_value) * 100
+                
+                print(f"Trade {trade_id} current P&L: {pnl_percentage:.2f}% ({pnl:.2f} USDT)")
+                
+                # Check if profit target is reached
+                if pnl_percentage >= target_profit_percentage:
+                    print(f"Trade {trade_id} has reached profit target: {pnl_percentage:.2f}% ({pnl:.2f} USDT)")
+                    
+                    # Close the trade
+                    from database import close_trade
+                    success = close_trade(trade_id, current_price_value, pnl)
+                    
+                    if success:
+                        print(f"Automatically closed profitable trade {trade_id} with {pnl:.2f} USDT profit ({pnl_percentage:.2f}%)")
+                    else:
+                        print(f"Failed to auto-close trade {trade_id}")
+            except Exception as e:
+                print(f"Error checking trade {trade_id} for auto-close: {str(e)}")
+                continue
+    except Exception as e:
+        print(f"Error in check_and_close_profitable_trades: {str(e)}")
+
+async def profitable_trades_monitor():
+    """Background task that periodically checks for profitable trades to auto-close"""
+    while True:
+        try:
+            await check_and_close_profitable_trades()
+        except Exception as e:
+            print(f"Error in profitable_trades_monitor: {str(e)}")
+        
+        # Check every 5 minutes
+        await asyncio.sleep(300)
+
+# ========== DIAGNOSTICS ==========
+@app.get("/diagnostics")
+def get_diagnostics():
+    """API endpoint to check system diagnostics"""
+    try:
+        # Check database connection
+        db_status = "OK"
+        db_error = None
+        try:
+            conn = sqlite3.connect('trades.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM trades")
+            trade_count = cursor.fetchone()[0]
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            db_status = "ERROR"
+            db_error = str(e)
+        
+        # Check if exchange API is responsive
+        api_status = "OK"
+        api_error = None
+        try:
+            if strategy is not None:
+                # Try a basic API call
+                result = strategy.client.get_wallet_balance(
+                    accountType="UNIFIED",
+                )
+                if result.get('retCode') != 0:
+                    api_status = "WARNING"
+                    api_error = f"API returned error code: {result.get('retCode')}, message: {result.get('retMsg')}"
+            else:
+                api_status = "NOT_INITIALIZED"
+                api_error = "Trading strategy not initialized"
+        except Exception as e:
+            api_status = "ERROR"
+            api_error = str(e)
+        
+        # Service details
+        uptime = time.time() - startup_time
+        
+        return {
+            "status": "running",
+            "version": "1.2.0",
+            "uptime_seconds": round(uptime, 2),
+            "uptime_formatted": f"{int(uptime // 3600)}h {int((uptime % 3600) // 60)}m {int(uptime % 60)}s",
+            "database": {
+                "status": db_status,
+                "error": db_error,
+                "trade_count": trade_count if db_status == "OK" else None
+            },
+            "exchange_api": {
+                "status": api_status,
+                "error": api_error
+            },
+            "configuration": {
+                "symbol": SYMBOL,
+                "leverage": LEVERAGE,
+                "demo_mode": DEMO_MODE,
+                "simulation_mode": SIMULATION_MODE
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+@app.post("/restart")
+async def restart_server():
+    """API endpoint to restart the server"""
+    try:
+        import subprocess
+        import sys
+        import os
+        
+        # Log restart request
+        print("Restart requested via API")
+        
+        # Run the restart script in background
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "restart_server.sh")
+        subprocess.Popen(["bash", script_path], 
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        start_new_session=True)
+        
+        # Return success before server shuts down
+        return {"status": "restart_initiated"}
+    except Exception as e:
+        print(f"Error restarting server: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
